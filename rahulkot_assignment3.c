@@ -25,7 +25,28 @@
 
 #include "../include/global.h"
 #include "../include/logger.h"
+#include <getopt.h>
+#include <stdint.h>
+#include <stdio.h>#include <string.h>#include <stdbool.h>#include <unistd.h>#include <sys/types.h> #include <sys/socket.h>#include <sys/ioctl.h>#include <net/if.h>#include <netinet/in.h>#include <signal.h>#include <stdlib.h>#include <arpa/inet.h>#include <netdb.h>
 void getMyIP (char * IP);
+/**
+ * Checks if the array pointed to by input holds a valid number.
+ *
+ * @param  input char* to the array holding the value.
+ * @return TRUE or FALSE
+ */
+int isNumber(char *input)
+{
+    while (*input){
+        if (!isdigit(*input))
+            return 0;
+        else
+            input += 1;
+    }
+
+    return 1;
+}
+
 /**
  * main function
  *
@@ -43,8 +64,48 @@ int main(int argc, char **argv)
 	fclose(fopen(DUMPFILE, "wb"));
 
 	/*Start Here*/
+	int opt;
+	char filename[256];
+	uint8_t IP[4];
 	char myIP[INET_ADDRSTRLEN];
-	getMyIP(myIP);
+	//getMyIP(myIP);
+	int interval;
+	 //Check for number of arguments
+   if(argc < 5){
+   	fprintf(stderr, "Missing arguments\n");
+	printf("Usage: %s ./assignment3 t <pathtotopologyfile> i <routingupdateinterval> \n", argv[0]);
+   	return -1;
+   }
+
+   /* 
+    * Parse the arguments 
+    * http://www.gnu.org/software/libc/manual/html_node/Example-of-Getopt.html 
+    */
+   while((opt = getopt(argc, argv,"t:i")) != -1){
+       switch (opt){
+           case 't':   printf("file %s\n",optarg);
+			strcpy(filename,optarg);
+			printf("filename %s\n",filename);
+
+                      // seed = atoi(optarg);
+                       break;
+	   case 'i':   /*if(!isNumber(optarg)){
+                           fprintf(stderr, "Invalid value for -i\n");
+                           return -1;
+                       }*/
+			printf("%s\n",optarg);
+			interval= atoi(optarg);
+			break;
+           case '?':   
+
+           default:    printf("Usage: ./assignment3 t <pathtotopologyfile> i <routingupdateinterval>\n", argv[0]);
+                       return -1;
+       }
+   }
+
+
+#if 0
+	
 
 	struct sockaddr_in my_addr;
 	struct sockaaddr_in clientaddress;
@@ -74,10 +135,11 @@ int main(int argc, char **argv)
 	{
 		perror("ERROR in binding\n");
 	}
+#endif
 	return 0;
 }
 
-				//Functions definitions start from here
+	#if 0			//Functions definitions start from here
 
 void getMyIP (char * IP)
 {
@@ -101,3 +163,4 @@ getsockname(r,(struct sockaddr*)&test1,&socklen);
  inet_ntop(AF_INET,&(test1.sin_addr),local, sizeof(local));
 strcpy(IP,local);  
 }
+#endif
