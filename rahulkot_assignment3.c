@@ -46,6 +46,7 @@ int isNumber(char *input)
 
     return 1;
 }
+void getIP(uint8_t * ip, char * logline);
 
 /**
  * main function
@@ -69,6 +70,7 @@ int main(int argc, char **argv)
 	uint8_t IP[4];
 	char myIP[INET_ADDRSTRLEN];
 	//getMyIP(myIP);
+	//getIP(IP,myIP);//converting string IP address to uint_8t IP address
 	int interval;
 	 //Check for number of arguments
    if(argc < 5){
@@ -164,3 +166,13 @@ getsockname(r,(struct sockaddr*)&test1,&socklen);
 strcpy(IP,local);  
 }
 #endif
+//parsing IP address using strtok has been referenced from http://www.friedspace.com/cprogramming/parsing.php
+void getIP(uint8_t * ip, char * logline)
+{
+    ip[0] = atoi(strtok(logline, "."));
+    ip[1] = atoi(strtok(NULL, "."));
+    ip[2] = atoi(strtok(NULL, "."));
+    ip[3] = atoi(strtok(NULL, " "));
+    
+    return;
+}
