@@ -27,6 +27,7 @@ int main (void)
 	int i=1;
 	uint16_t serverid,serverport;
 	uint8_t serverip[4];
+	uint16_t r_id,r_nid,r_cost;
 	int numofservers=0;
 	int numofneighbours=0;
 	int lines=0;
@@ -77,6 +78,16 @@ int main (void)
 				
   	 	 	
   			}
+			if(i==8)
+			{
+				r_id=atoi(strtok(buf," "));
+				printf("r_id=%d\n",r_id);
+				r_nid=atoi(strtok(NULL," "));
+				printf("r_nid=%d\n",r_nid);
+				r_cost=atoi(strtok(NULL," "));
+				printf("r_cost=%d\n",r_cost);
+			}
+				
 		i++;
 		//printf("%s", buf);
  		}
