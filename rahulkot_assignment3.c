@@ -27,7 +27,19 @@
 #include "../include/logger.h"
 #include <getopt.h>
 #include <stdint.h>
-#include <stdio.h>#include <string.h>#include <stdbool.h>#include <unistd.h>#include <sys/types.h> #include <sys/socket.h>#include <sys/ioctl.h>#include <net/if.h>#include <netinet/in.h>#include <signal.h>#include <stdlib.h>#include <arpa/inet.h>#include <netdb.h>
+#include <stdio.h>
+#include <string.h>
+#include <stdbool.h>
+#include <unistd.h>
+#include <sys/types.h> 
+#include <sys/socket.h>
+#include <sys/ioctl.h>
+#include <net/if.h>
+#include <netinet/in.h>
+#include <signal.h>
+#include <stdlib.h>
+#include <arpa/inet.h>
+#include <netdb.h>
 void getMyIP (char * IP);
 /**
  * Checks if the array pointed to by input holds a valid number.
