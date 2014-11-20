@@ -42,6 +42,11 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 
+// file descriptor for standard input
+#define STDIN 0
+#define BUFLEN 512
+
+
 // Data Sturctures
 struct idipport
 {
@@ -113,12 +118,14 @@ int main(int argc, char **argv)
 	int startindex=0;
 	int endindex =0;
 	int commandindex =0;
+	int iFD =0;
 	//end bhasspace initialisation
 
 	int opt;
 	char filename[256];
 	uint8_t IP[4];
 	char myIP[INET_ADDRSTRLEN];
+    char buf[BUFLEN];
 	getMyIP(myIP);
 	printf("IP address: %s\n",myIP );
 	getIP(IP,myIP);//converting string IP address to uint_8t IP address
@@ -158,20 +165,65 @@ int main(int argc, char **argv)
 
 	// read the topology file and load the data in structures 
 	ReadTopologyFile(filename);
-	
-		while(1)
-		{
-				
-				// parsing command from user "REGISTER" "CREATOR" and others
-				i = 0;
-				bhasSpace = false;
-				memset(command[0],0, 32);
-				printf("Enter Command: ");
-				scanf("%[^\n]",command_line);
 
-				// split commands with space ' '
-				i =startindex= 0;
-				commandindex = 0;
+
+
+	// Creating the sockets
+	struct sockaddr_in my_addr, cli_addr;
+    int ListeningSockfd;
+    socklen_t slen=sizeof(cli_addr);
+
+    if ((ListeningSockfd = socket(AF_INET, SOCK_DGRAM,0))==-1)//IPPROTO_UDP
+      err("socket");
+    else
+      printf("Server : Socket() successful\n");
+
+    bzero(&my_addr, sizeof(my_addr));
+    my_addr.sin_family = AF_INET;
+	// first serverid, ip & portnumber are current ip
+	// so taking index '0'
+    my_addr.sin_port = htons(a_idipport[0].topology_port);
+    my_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+
+    if (bind(ListeningSockfd, (struct sockaddr* ) &my_addr, sizeof(my_addr))==-1)
+      err("bind");
+    else
+      printf("Server : bind() successful\n");
+
+    // Initialisation for select
+    fd_set myread_fds;
+    fd_set myinitialset;
+	int myMaxfd = ListeningSockfd;
+    // clear all entries in myread_fds
+    FD_ZERO(&myinitialset);
+    FD_ZERO(&myread_fds);
+    // adding STDINPUT to myinitialset
+    FD_SET(STDIN, &myinitialset);
+    // adding the socket that is being listened to myinitialset
+    FD_SET(ListeningSockfd, &myinitialset);
+    
+
+	while(1)
+	{
+    	printf("\nEnter Command:\n");
+        myread_fds= myinitialset; // copying 
+
+		if (select(myMaxfd+1, &myread_fds, NULL, NULL, NULL) == -1)
+		{
+			perror("select");
+		}
+
+		if (FD_ISSET(STDIN, &myread_fds))
+		{
+			i = 0;
+			bhasSpace = false;
+			memset(command[0],0, 32);
+			//printf("Enter Command: ");
+			scanf("%[^\n]",command_line);
+
+			// split commands with space ' '
+			i =startindex= 0;
+			commandindex = 0;
 
 			while( command_line[i] != '\0')
 			{
@@ -198,22 +250,67 @@ int main(int argc, char **argv)
 			//if(( strcmp(command[0], "REGISTER") == 0) || (strcmp(command[0],"register")==0))
 			}
 			getchar();
-				if(bhasSpace== false)
+			if(bhasSpace== false)
+			{
+				strcpy(command[0] , command_line);
+			}	 					
+			// Execute commands
+			if((strcmp(command[0],"EXIT")== 0) || (strcmp(command[0],"exit")==0))
+			{	
+				printf("The command is %s\n",command[0]);
+				break;
+			}
+			if((strcmp(command[0],"UPDATE")== 0) || (strcmp(command[0],"update")==0))
+			{
+				printf("The command is %s\n",command[0]);
+			}
+			if((strcmp(command[0],"STEP")== 0) || (strcmp(command[0],"step")==0))
+			{
+				printf("The command is %s\n",command[0]);
+			}
+			if((strcmp(command[0],"PACKETS")== 0) || (strcmp(command[0],"packets")==0))
+			{
+				printf("The command is %s\n",command[0]);
+			}
+			if((strcmp(command[0],"DISPLAY")== 0) || (strcmp(command[0],"display")==0))
+			{
+				printf("The command is %s\n",command[0]);
+			}
+			if((strcmp(command[0],"DISABLE")== 0) || (strcmp(command[0],"disable")==0))
+			{
+				printf("The command is %s\n",command[0]);
+			}
+			if((strcmp(command[0],"CRASH")== 0) || (strcmp(command[0],"crash")==0))
+			{
+				printf("The command is %s\n",command[0]);
+			}
+			if((strcmp(command[0],"DUMP")== 0) || (strcmp(command[0],"dump")==0))
+			{
+				printf("The command is %s\n",command[0]);
+			}
+			if((strcmp(command[0],"ACADEMIC_INTEGRITY")== 0) || (strcmp(command[0],"academic_integrity")==0))
+			{
+				printf("The command is %s\n",command[0]);
+			}
+		}// IF STDIN
+
+        // run through the existing connections looking for data to read
+
+		for(iFD = 0; iFD <= myMaxfd; iFD++)
+		{
+			if (FD_ISSET(iFD, &myread_fds) && iFD!=STDIN)
+			{ // we got one!!
+				if (recvfrom(ListeningSockfd, buf, BUFLEN, 0, (struct sockaddr*)&cli_addr, &slen)==-1)
+		            err("recvfrom()");
+       					 printf("Received packet from %s:%d\nData: %s\n\n",
+               						inet_ntoa(cli_addr.sin_addr), ntohs(cli_addr.sin_port), buf);
+
+				/*if (iFD == myListeningSkfd)
 				{
-					strcpy(command[0] , command_line);
-				 					
-					if((strcmp(command[0],"EXIT")== 0) || (strcmp(command[0],"exit")==0))
-
-					{	
-
-						break;
-
-					}
-			
-				}
+				}*/
+			}
 		}
-			
-	
+	}
 
 
 	PrintCostTable();	
@@ -261,14 +358,14 @@ int ReadTopologyFile (char* chFileName)
 		 	{
 				numofservers=atoi(buf);
 				printf("no. of servers=%d\n",numofservers);
-				topology_idipport=(struct idipport*)malloc(numofservers*sizeof(struct idipport));
+				//topology_idipport=(struct idipport*)malloc(numofservers*sizeof(struct idipport));
 			}
 
 			if(i_topology==2)
 			{
 				numofneighbours=atoi(buf);
 				printf("no. of neighbours=%d\n",numofneighbours);
-				topology_ididcost=(struct ididcost*)malloc(numofneighbours*sizeof(struct ididcost));
+				//topology_ididcost=(struct ididcost*)malloc(numofneighbours*sizeof(struct ididcost));
 				
 				lines=numofservers+numofneighbours;
 				
@@ -367,43 +464,30 @@ void getIP(uint8_t *ip, char * logline)
 void getMyIP (char * IP)
 
 {
-
-//Part Of this code has been taken from : http://stackoverflow.com/questions/6490759/local-ip-after-gethostbyname
+	//Part Of this code has been taken from : http://stackoverflow.com/questions/6490759/local-ip-after-gethostbyname
 
 	struct sockaddr_in test,test1;
+	int socklen;
+	char local[242];
+	int r=socket(AF_INET, SOCK_DGRAM,0);
 
-int socklen;
+	if(r<0)
+	{
+		printf(" MYIP socket error");
+	}
 
-char local[242];
+	test.sin_family = AF_INET;
+	test.sin_port = htons(2345);
+	test.sin_addr.s_addr = inet_addr("8.8.8.8");
 
-int r=socket(AF_INET, SOCK_DGRAM,0);
+	connect(r,(struct sockaddr*)&test,sizeof test);
 
-if(r<0)
+	socklen = sizeof(test1);
 
-{
+	getsockname(r,(struct sockaddr*)&test1,&socklen);
 
- printf(" MYIP socket error");
+	inet_ntop(AF_INET,&(test1.sin_addr),local, sizeof(local));
 
-}
-
-  test.sin_family = AF_INET;
-
-  test.sin_port = htons(2345);
-
-  test.sin_addr.s_addr = inet_addr("8.8.8.8");
-
-connect(r,(struct sockaddr*)&test,sizeof test);
-
-
-
-socklen = sizeof(test1);
-
-
-
-getsockname(r,(struct sockaddr*)&test1,&socklen);
-
- inet_ntop(AF_INET,&(test1.sin_addr),local, sizeof(local));
-
-strcpy(IP,local);  
+	strcpy(IP,local);  
 
 }
