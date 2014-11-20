@@ -105,12 +105,23 @@ int main(int argc, char **argv)
 	//fclose(fopen(DUMPFILE, "wb"));
 
 	/*Start Here*/
+	//for bhasspace
+	char command_line[150];
+	char command[3][32];
+	bool bhasSpace = false;
+	int i;
+	int startindex=0;
+	int endindex =0;
+	int commandindex =0;
+	//end bhasspace initialisation
+
 	int opt;
 	char filename[256];
 	uint8_t IP[4];
 	char myIP[INET_ADDRSTRLEN];
-	//getMyIP(myIP);
-	//getIP(IP,myIP);//converting string IP address to uint_8t IP address
+	getMyIP(myIP);
+	printf("IP address: %s\n",myIP );
+	getIP(IP,myIP);//converting string IP address to uint_8t IP address
 	int interval;
 	 //Check for number of arguments
    if(argc < 5){
@@ -136,7 +147,7 @@ int main(int argc, char **argv)
                        }
 			//printf("%s\n",optarg);
 			interval= atoi(optarg);
-			printf("interval: %d",interval);
+			printf("interval: %d\n",interval);
 			break;
            case '?':   
 
@@ -147,6 +158,62 @@ int main(int argc, char **argv)
 
 	// read the topology file and load the data in structures 
 	ReadTopologyFile(filename);
+	
+		while(1)
+		{
+				
+				// parsing command from user "REGISTER" "CREATOR" and others
+				i = 0;
+				bhasSpace = false;
+				memset(command[0],0, 32);
+				printf("Enter Command: ");
+				scanf("%[^\n]",command_line);
+
+				// split commands with space ' '
+				i =startindex= 0;
+				commandindex = 0;
+
+			while( command_line[i] != '\0')
+			{
+				if(command_line[i] == ' ')
+				{
+					bhasSpace = true;
+					endindex = i;
+					strncpy(command[commandindex],(command_line+startindex), (endindex - startindex));
+					command[commandindex][endindex-startindex] = '\0';
+					printf("\n%d: %s\n",i,command[commandindex]);
+					startindex = endindex + 1;
+					commandindex++;
+
+					if(commandindex == 3)
+					{
+						strcpy(command[commandindex], (command_line +i+1));
+						printf("\n%d: %s\n",i,command[commandindex]);
+						
+						break;
+					}
+				}    
+  				i++;
+			
+			//if(( strcmp(command[0], "REGISTER") == 0) || (strcmp(command[0],"register")==0))
+			}
+			getchar();
+				if(bhasSpace== false)
+				{
+					strcpy(command[0] , command_line);
+				 					
+					if((strcmp(command[0],"EXIT")== 0) || (strcmp(command[0],"exit")==0))
+
+					{	
+
+						break;
+
+					}
+			
+				}
+		}
+			
+	
 
 
 	PrintCostTable();	
@@ -178,8 +245,8 @@ int ReadTopologyFile (char* chFileName)
 	int numofneighbours=0;
 	int lines=0;
 	int k_topology;
-	int iServerIndex = 0;
 
+	int iServerIndex = 0;
 	int imyindex = 0;
 	int ineighbourindex = 0;
 	
@@ -190,12 +257,13 @@ int ReadTopologyFile (char* chFileName)
 	{
   		while (fgets (buf, sizeof(buf), fpTopology))
   		{
-    		if(i_topology==1)
+    			if(i_topology==1)
 		 	{
 				numofservers=atoi(buf);
 				printf("no. of servers=%d\n",numofservers);
 				topology_idipport=(struct idipport*)malloc(numofservers*sizeof(struct idipport));
 			}
+
 			if(i_topology==2)
 			{
 				numofneighbours=atoi(buf);
@@ -205,18 +273,21 @@ int ReadTopologyFile (char* chFileName)
 				lines=numofservers+numofneighbours;
 				
 			}
+
 			if((i_topology>2) && (i_topology<=(2+numofservers)))
 			{
 					
 				serverid=atoi(strtok(buf," "));
 				//printf("server id =%d\n",serverid);
 				ServerIDArray[iServerIndex] = serverid;
+
 				check=strtok(NULL," ");
 				//printf("check=%s\n",check);
 					
 								
 				serverport=atoi(strtok(NULL," "));
 				//printf("server port =%d\n",serverport);
+
 				getIP(serverip,check);
 				/*for(k=0;k<4;k++)
 				{
@@ -292,4 +363,47 @@ void getIP(uint8_t *ip, char * logline)
     ip[3] = atoi(strtok(NULL, " "));
     
     return;
+}
+void getMyIP (char * IP)
+
+{
+
+//Part Of this code has been taken from : http://stackoverflow.com/questions/6490759/local-ip-after-gethostbyname
+
+	struct sockaddr_in test,test1;
+
+int socklen;
+
+char local[242];
+
+int r=socket(AF_INET, SOCK_DGRAM,0);
+
+if(r<0)
+
+{
+
+ printf(" MYIP socket error");
+
+}
+
+  test.sin_family = AF_INET;
+
+  test.sin_port = htons(2345);
+
+  test.sin_addr.s_addr = inet_addr("8.8.8.8");
+
+connect(r,(struct sockaddr*)&test,sizeof test);
+
+
+
+socklen = sizeof(test1);
+
+
+
+getsockname(r,(struct sockaddr*)&test1,&socklen);
+
+ inet_ntop(AF_INET,&(test1.sin_addr),local, sizeof(local));
+
+strcpy(IP,local);  
+
 }
