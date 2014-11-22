@@ -55,6 +55,12 @@ struct idipport
  uint16_t topology_port;
 }a_idipport[5];
 
+
+struct neighbr
+{
+ bool tf;
+}a_neighbr[5];
+
 struct ididcost
 {
  uint16_t myid;
@@ -173,6 +179,7 @@ int main(int argc, char **argv)
 	int z=0;
 	int z1=0;
 	uint16_t port_num=0;
+	uint16_t my_id=0;
 	struct sockaddr_in my_addr, cli_addr,serv_addr;
     int ListeningSockfd;
     socklen_t slen=sizeof(cli_addr);
@@ -202,6 +209,8 @@ int main(int argc, char **argv)
 	    if(z==1)
 		{
 			port_num=a_idipport[i].topology_port;
+			my_id=a_idipport[i].topology_id;
+			printf("my id is %d\n",my_id);
 		}
 		z=0;
 
@@ -419,57 +428,56 @@ int ReadTopologyFile (char* chFileName)
   	
 	if(fpTopology!=NULL)
 	{
+		
+		
   		while (fgets (buf, sizeof(buf), fpTopology))
   		{
-    			if(i_topology==1)
+    		 	if(i_topology==1)
 		 	{
 				numofservers=atoi(buf);
 				printf("no. of servers=%d\n",numofservers);
-				//topology_idipport=(struct idipport*)malloc(numofservers*sizeof(struct idipport));
-			}
+				topology_idipport=(struct idipport*)malloc(numofservers*sizeof(struct idipport));
+				
 
+			}
 			if(i_topology==2)
 			{
 				numofneighbours=atoi(buf);
 				printf("no. of neighbours=%d\n",numofneighbours);
-				//topology_ididcost=(struct ididcost*)malloc(numofneighbours*sizeof(struct ididcost));
+				topology_ididcost=(struct ididcost*)malloc(numofneighbours*sizeof(struct ididcost));
 				
 				lines=numofservers+numofneighbours;
 				
 			}
-
 			if((i_topology>2) && (i_topology<=(2+numofservers)))
+			//if(i_topology==3)		
 			{
-					
 				serverid=atoi(strtok(buf," "));
 				//printf("server id =%d\n",serverid);
-				ServerIDArray[iServerIndex] = serverid;
-
 				check=strtok(NULL," ");
 				//printf("check=%s\n",check);
 					
-								
+				
+				
 				serverport=atoi(strtok(NULL," "));
 				//printf("server port =%d\n",serverport);
-
 				getIP(serverip,check);
 				/*for(k=0;k<4;k++)
 				{
 				 printf("serverip[%d]=%d\n",k,serverip[k]);
 				}*/
-				
-				a_idipport[iServerIndex].topology_id=serverid;
-				printf("id=%d\n",a_idipport[iServerIndex].topology_id);
+				a_neighbr[serverid-1].tf=false;
+				a_idipport[serverid-1].topology_id=serverid;
+				printf("id=%d\n",a_idipport[serverid-1].topology_id);
 				
 				 for(k_topology=0;k_topology<4;k_topology++)
 				{
-				 a_idipport[iServerIndex].topology_ip[k_topology]=serverip[k_topology];
-				 printf("ip=%d\n",a_idipport[iServerIndex].topology_ip[k_topology]);
+				 a_idipport[serverid-1].topology_ip[k_topology]=serverip[k_topology];
+				 printf("ip=%d\n",a_idipport[serverid-1].topology_ip[k_topology]);
 				}
-				a_idipport[iServerIndex].topology_port=serverport;
-				printf("port=%d\n",a_idipport[iServerIndex].topology_port);
-			
-				iServerIndex++;	
+				a_idipport[serverid-1].topology_port=serverport;
+				printf("port=%d\n",a_idipport[serverid-1].topology_port);
+				
   	 	 	
   			}
 			if(i_topology>(2+numofservers))
@@ -480,32 +488,39 @@ int ReadTopologyFile (char* chFileName)
 				//printf("r_nid=%d\n",r_nid);
 				r_cost=atoi(strtok(NULL," "));
 				//printf("r_cost=%d\n",r_cost);
+				
+				
+				a_neighbr[r_nid-1].tf=true;
+				printf("a_neighbr[%d}=%d\n",r_nid,a_neighbr[r_nid-1].tf);
+				a_ididcost[serverid-1].myid=r_id;
+				a_ididcost[serverid-1].neighbourid=r_nid;
+				a_ididcost[serverid-1].costlink=r_cost;
+				printf("id=%d,nid=%d,costlink=%d\n",a_ididcost[serverid-1].myid,a_ididcost[serverid-1].neighbourid,a_ididcost[serverid-1].costlink);
 
-				// find the serverid index
-				imyindex = getServerIDIndex(r_id);
-				ineighbourindex = getServerIDIndex( r_nid );
-				if ( imyindex < 5 && ineighbourindex < 5)	
+                                if ( r_id < 5 && r_nid < 5)	
 				{
-					CostTable[ imyindex ] [ ineighbourindex ] = r_cost;
-					CostTable[ ineighbourindex ] [ imyindex ] = r_cost;
+					CostTable[ r_id -1] [ r_nid-1 ] = r_cost;
+					CostTable[ r_nid-1 ] [ r_id -1] = r_cost;
 					// implement the 2D array with cost	
 					//a_ididcost[i].myid=r_id;
 					//a_ididcost[i].neighbourid=r_nid;
 					//a_ididcost[i].costlink=r_cost;
 					//printf("id=%d,nid=%d,costlink=%d\n",a_ididcost[serverid].myid,a_ididcost[serverid].neighbourid,a_ididcost[serverid].costlink);
 				}
+
+				
 				
 			}
 				
-			i_topology++;
-			//printf("%s", buf);
-			memset(buf,0,100);
+		i_topology++;
+		//printf("%s", buf);
  		}
 	}
 	else
 	{
 	  printf("error in opening file");
 	}
+ 
  	fclose(fpTopology);
   	return 0;
 }
