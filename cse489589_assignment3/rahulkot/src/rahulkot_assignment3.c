@@ -131,6 +131,8 @@ int main(int argc, char **argv)
 	//end bhasspace initialisation
 
 	//for update
+	char *bf;
+	bf= (char*)malloc(8+(numofservers*12));
 	uint16_t updt=0;
 	uint16_t padding=0;
 
@@ -328,17 +330,21 @@ switch(a_test)
 				//Update logic 
 				if(my_id!=atoi(command[1]))
 				{
-					printf("wrong command, enter myid as 1st id");
+					printf("wrong command, enter myid as 1st id\n");
+					
 				}
-
-				if(a_neighbr[atoi(command[2])-1].tf== false)
+				else
 				{
-					printf("not a neighbour");
-				}
+
+					if(a_neighbr[atoi(command[2])-1].tf== false)
+					{
+					printf("not a neighbour\n");
+					}
 
 
 			if(a_ididcost[atoi(command[2])-1].costlink != atoi(command[3]))
 			{
+				printf("entered update send loop\n");
 				int i_mem=0;
 				int test_mem;
 				 //send update to all
@@ -347,20 +353,24 @@ switch(a_test)
 				bzero(&serv_addr, sizeof(serv_addr));
     				serv_addr.sin_family = AF_INET;
 				//new one
-				char *bf;
+				printf("line = %d\n",__LINE__);
 				memcpy(bf,&updt,sizeof(updt));
-				memcpy(bf+ 2,&port_num,sizeof(port_num));
-				memcpy(bf+ 4, &IP[0],sizeof(IP[0]));
-				memcpy(bf+ 5, &IP[1],sizeof(IP[1]));
-				memcpy(bf+ 6, &IP[2],sizeof(IP[2]));
-				memcpy(bf+ 7, &IP[3],sizeof(IP[3]));
+				memcpy(bf+2,&port_num,sizeof(port_num));
+				memcpy(bf+4, &IP[0],sizeof(IP[0]));
+				printf("line = %d\n",__LINE__);
+				memcpy(bf+5, &IP[1],sizeof(IP[1]));
+				memcpy(bf+6, &IP[2],sizeof(IP[2]));
+				memcpy(bf+7, &IP[3],sizeof(IP[3]));
 
 			        test_mem=8;
+				printf("num of neighbours= %d line:%d\n",numofneighbours,__LINE__);
 
 				for(i_mem=0;i_mem<=numofneighbours;i_mem++)
 				{
+					printf("line = %d\n",__LINE__);
 					if(a_neighbr[i_mem].tf==true)
 					{
+						printf("line = %d\n",__LINE__);
 						memcpy(bf+test_mem, &a_idipport[i_mem].topology_ip[0],1);
 						test_mem++;
 						memcpy(bf+test_mem, &a_idipport[i_mem].topology_ip[1],1);	
@@ -404,6 +414,8 @@ switch(a_test)
        				 if (sendto(ConnectingSockfd, buf, BUFLEN, 0, (struct sockaddr*)&serv_addr, slen)==-1)
           			  err("sendto()");
    				 }*/
+				}//else
+				printf("line = %d\n",__LINE__);
 
 			}
 			if((strcmp(command[0],"STEP")== 0) || (strcmp(command[0],"step")==0))
@@ -439,6 +451,7 @@ switch(a_test)
 				
 
 			}
+				printf("line = %d\n",__LINE__);
 			getchar();
 		}// IF STDIN
 
