@@ -136,6 +136,7 @@ int main(int argc, char **argv)
 	getMyIP(myIP);
 	printf("IP address: %s\n",myIP );
 	getIP(IP,myIP);//converting string IP address to uint_8t IP address
+	printf("size of IP[0]=%d\n",sizeof(IP[0]));
 	int interval;
 	 //Check for number of arguments
    if(argc < 5){
@@ -239,7 +240,7 @@ switch(a_test)
       printf("Server : bind() successful\n");
 	break;
 	case 2: break;
-       }
+     }
 
     // Initialisation for select
     fd_set myread_fds;
@@ -300,7 +301,7 @@ switch(a_test)
 			
 			//if(( strcmp(command[0], "REGISTER") == 0) || (strcmp(command[0],"register")==0))
 			}
-			getchar();
+			//getchar();
 			if(bhasSpace== false)
 			{
 				strcpy(command[0] , command_line);
@@ -314,18 +315,19 @@ switch(a_test)
 			if((strcmp(command[0],"UPDATE")== 0) || (strcmp(command[0],"update")==0))
 			{
 				printf("The command is %s\n",command[0]);
+				printf("the command[1] is %s\n",command[1]);
 
 				bzero(&serv_addr, sizeof(serv_addr));
     				serv_addr.sin_family = AF_INET;
-   				 serv_addr.sin_port = htons(port_num);
+   				 serv_addr.sin_port = htons(4091);
   				  if (inet_aton(command[1], &serv_addr.sin_addr)==0)
    					 {
       						  fprintf(stderr, "inet_aton() failed\n");
       						  exit(1);
    					 }
  
-   		 while(1)
-    		{
+   				 while(1)
+    				{
        				 printf("\nEnter data to send(Type exit and press enter to exit) : ");
        				 scanf("%[^\n]",buf);
        				 getchar();
@@ -334,7 +336,7 @@ switch(a_test)
  			
        				 if (sendto(ConnectingSockfd, buf, BUFLEN, 0, (struct sockaddr*)&serv_addr, slen)==-1)
           			  err("sendto()");
-   		 }
+   				 }
 
 			}
 			if((strcmp(command[0],"STEP")== 0) || (strcmp(command[0],"step")==0))
@@ -368,6 +370,7 @@ switch(a_test)
 				
 
 			}
+			getchar();
 		}// IF STDIN
 
         // run through the existing connections looking for data to read
