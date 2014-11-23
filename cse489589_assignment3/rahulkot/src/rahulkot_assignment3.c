@@ -74,6 +74,8 @@ struct idiport *topology_idipport;
 struct ididcost *topology_ididcost;
 int ServerIDArray[5];
 int CostTable[5][5];
+int numofservers;
+int numofneighbours;
 
 // Pre declarations
 void getMyIP (char * IP);
@@ -127,6 +129,10 @@ int main(int argc, char **argv)
 	int commandindex =0;
 	int iFD =0;
 	//end bhasspace initialisation
+
+	//for update
+	uint16_t updt=0;
+	uint16_t padding=0;
 
 	int opt;
 	char filename[256];
@@ -316,10 +322,71 @@ switch(a_test)
 			{
 				printf("The command is %s\n",command[0]);
 				printf("the command[1] is %s\n",command[1]);
+				printf("the atoi is %d\n",atoi(command[1]));
+				printf("size of updt %d\n",sizeof(updt));
+
+				//Update logic 
+				if(my_id!=atoi(command[1]))
+				{
+					printf("wrong command, enter myid as 1st id");
+				}
+
+				if(a_neighbr[atoi(command[2])-1].tf== false)
+				{
+					printf("not a neighbour");
+				}
+
+
+			if(a_ididcost[atoi(command[2])-1].costlink != atoi(command[3]))
+			{
+				int i_mem=0;
+				int test_mem;
+				 //send update to all
+				//creating a buffer and memcopying every parameter we need to send
 
 				bzero(&serv_addr, sizeof(serv_addr));
     				serv_addr.sin_family = AF_INET;
-   				 serv_addr.sin_port = htons(4091);
+				//new one
+				char *bf;
+				memcpy(bf,&updt,sizeof(updt));
+				memcpy(bf+ 2,&port_num,sizeof(port_num));
+				memcpy(bf+ 4, &IP[0],sizeof(IP[0]));
+				memcpy(bf+ 5, &IP[1],sizeof(IP[1]));
+				memcpy(bf+ 6, &IP[2],sizeof(IP[2]));
+				memcpy(bf+ 7, &IP[3],sizeof(IP[3]));
+
+			        test_mem=8;
+
+				for(i_mem=0;i_mem<=numofneighbours;i_mem++)
+				{
+					if(a_neighbr[i_mem].tf==true)
+					{
+						memcpy(bf+test_mem, &a_idipport[i_mem].topology_ip[0],1);
+						test_mem++;
+						memcpy(bf+test_mem, &a_idipport[i_mem].topology_ip[1],1);	
+						test_mem++;
+						memcpy(bf+test_mem, &a_idipport[i_mem].topology_ip[2],1);
+						test_mem++;
+						memcpy(bf+test_mem, &a_idipport[i_mem].topology_ip[3],1);
+						test_mem++;
+						memcpy(bf+test_mem, &a_idipport[i_mem].topology_port,2);
+						test_mem=test_mem+2;
+						memcpy(bf+test_mem, &padding,2);
+						test_mem=test_mem+2;
+						memcpy(bf+test_mem, &a_idipport[i_mem].topology_id,2);
+						test_mem=test_mem+2;
+						memcpy(bf+test_mem, &a_ididcost[i_mem].costlink,2);
+						test_mem=test_mem+2;
+					}
+				}	
+			}
+
+
+
+
+				
+				
+   				/* serv_addr.sin_port = htons(4091);
   				  if (inet_aton(command[1], &serv_addr.sin_addr)==0)
    					 {
       						  fprintf(stderr, "inet_aton() failed\n");
@@ -336,7 +403,7 @@ switch(a_test)
  			
        				 if (sendto(ConnectingSockfd, buf, BUFLEN, 0, (struct sockaddr*)&serv_addr, slen)==-1)
           			  err("sendto()");
-   				 }
+   				 }*/
 
 			}
 			if((strcmp(command[0],"STEP")== 0) || (strcmp(command[0],"step")==0))
@@ -366,6 +433,8 @@ switch(a_test)
 			if((strcmp(command[0],"ACADEMIC_INTEGRITY")== 0) || (strcmp(command[0],"academic_integrity")==0))
 			{
 				printf("The command is %s\n",command[0]);
+				cse4589_print_and_log("%s:SUCCESS\n", command[0]);
+				
 				printf("\nI have read and understood the course academic integrity policy located at http://www.cse.buffalo.edu/faculty/dimitrio/courses/cse4589_f14/index.html#integrity");
 				
 
@@ -417,8 +486,6 @@ int ReadTopologyFile (char* chFileName)
 	uint16_t serverid,serverport;
 	uint8_t serverip[4];
 	uint16_t r_id,r_nid,r_cost;
-	int numofservers=0;
-	int numofneighbours=0;
 	int lines=0;
 	int k_topology;
 
