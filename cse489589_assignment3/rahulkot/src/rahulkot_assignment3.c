@@ -121,20 +121,19 @@ int main(int argc, char **argv)
 	/*Start Here*/
 	//for bhasspace
 	char command_line[150];
-	char command[3][32];
+	char command[4][32];
 	bool bhasSpace = false;
-	int i;
+	int i,j;
 	int startindex=0;
 	int endindex =0;
 	int commandindex =0;
 	int iFD =0;
 	//end bhasspace initialisation
+	
+	//for counting packets
+	int count=0;
 
-	//for update
-	char *bf;
-	bf= (char*)malloc(8+(numofservers*12));
-	uint16_t updt=0;
-	uint16_t padding=0;
+	
 
 	int opt;
 	char filename[256];
@@ -146,6 +145,9 @@ int main(int argc, char **argv)
 	getIP(IP,myIP);//converting string IP address to uint_8t IP address
 	printf("size of IP[0]=%d\n",sizeof(IP[0]));
 	int interval;
+
+
+	
 	 //Check for number of arguments
    if(argc < 5){
    	fprintf(stderr, "Missing arguments\n");
@@ -179,8 +181,33 @@ int main(int argc, char **argv)
        }
    }
 
+	//for cost table
+	for(i=0;i<5;i++)
+	{
+		a_ididcost[i].costlink=0;
+		for(j=0;j<5;j++)
+		{
+      		CostTable[i][j]=-1;
+			
+			//printf("%d\t",CostTable[i][j]);
+		}
+	//printf("\n");    
+	}
+		
 	// read the topology file and load the data in structures 
 	ReadTopologyFile(filename);
+	
+	uint16_t updt=0;
+	uint16_t padding=0;
+	//for update
+	char *bf;
+	int a=(8+(numofservers*12));
+	bf= (char*)malloc(8+(numofservers*12));
+	//at receivng
+	char *rcvbf;
+	rcvbf= (char*)malloc(8+(numofservers*12));
+	uint16_t cost[5];
+	
 
 
 
@@ -201,6 +228,7 @@ int main(int argc, char **argv)
 	int ConnectingSockfd = socket(AF_INET, SOCK_DGRAM,0);
 
     bzero(&my_addr, sizeof(my_addr));
+
 //extracting port number from topology file
 	for(i=0;i<5;i++)
 	{
@@ -225,13 +253,12 @@ int main(int argc, char **argv)
 
 	 }
 	printf("port number=%d\n",port_num);
-int a_test=0;
-	printf("enter 1 for bind or 2 to escape bind");
-	scanf("%d",&a_test);
+	CostTable[my_id-1][my_id-1]=0;
 
-switch(a_test)
-	{
-	 case 1:
+	
+
+
+
     my_addr.sin_family = AF_INET;
 	// first serverid, ip & portnumber are current ip
 	// so taking index '0'
@@ -246,9 +273,7 @@ switch(a_test)
       err("bind");
     else
       printf("Server : bind() successful\n");
-	break;
-	case 2: break;
-     }
+	
 
     // Initialisation for select
     fd_set myread_fds;
@@ -265,16 +290,19 @@ switch(a_test)
 
 	while(1)
 	{
+		
     	printf("\nEnter Command:\n");
         myread_fds= myinitialset; // copying 
 
 		if (select(myMaxfd+1, &myread_fds, NULL, NULL, NULL) == -1)
 		{
 			perror("select");
+			
 		}
 
 		if (FD_ISSET(STDIN, &myread_fds))
 		{
+			
 			i = 0;
 			bhasSpace = false;
 			memset(command[0],0, 32);
@@ -284,6 +312,18 @@ switch(a_test)
 			// split commands with space ' '
 			i =startindex= 0;
 			commandindex = 0;
+			
+			/*command[0][32]=strtok(command_line," ");
+			printf( " %s\n", command[0] );
+			i++;
+			 while( command_line != NULL ) 
+  			 {
+     			 
+    
+     		 	command[i][32] = strtok(NULL," ");
+				printf( " %s\n", command[i] );
+   			 }*/
+		
 
 			while( command_line[i] != '\0')
 			{
@@ -313,7 +353,7 @@ switch(a_test)
 			if(bhasSpace== false)
 			{
 				strcpy(command[0] , command_line);
-			}	 					
+			}	 				
 			// Execute commands
 			if((strcmp(command[0],"EXIT")== 0) || (strcmp(command[0],"exit")==0))
 			{	
@@ -326,6 +366,9 @@ switch(a_test)
 				printf("the command[1] is %s\n",command[1]);
 				printf("the atoi is %d\n",atoi(command[1]));
 				printf("size of updt %d\n",sizeof(updt));
+				printf("size of portnumber %d\n",sizeof(port_num));
+				printf("size of padding %d\n",sizeof(padding));
+				printf("size of costlink %d\n",sizeof(a_ididcost[2].costlink));
 
 				//Update logic 
 				if(my_id!=atoi(command[1]))
@@ -353,24 +396,28 @@ switch(a_test)
 				bzero(&serv_addr, sizeof(serv_addr));
     				serv_addr.sin_family = AF_INET;
 				//new one
-				printf("line = %d\n",__LINE__);
-				memcpy(bf,&updt,sizeof(updt));
-				memcpy(bf+2,&port_num,sizeof(port_num));
+				
+				updt=5;
+				memcpy(bf,&updt,2);
+				memcpy(bf+2,&port_num,2);
 				memcpy(bf+4, &IP[0],sizeof(IP[0]));
-				printf("line = %d\n",__LINE__);
+				
 				memcpy(bf+5, &IP[1],sizeof(IP[1]));
 				memcpy(bf+6, &IP[2],sizeof(IP[2]));
 				memcpy(bf+7, &IP[3],sizeof(IP[3]));
+				uint16_t k;
+				memcpy(&k,bf+2,2);
+				printf("\n\n\n\n%d\n\n\n",k);
 
 			        test_mem=8;
 				printf("num of neighbours= %d line:%d\n",numofneighbours,__LINE__);
 
-				for(i_mem=0;i_mem<=numofneighbours;i_mem++)
+				for(i_mem=0;i_mem<numofservers;i_mem++)
 				{
-					printf("line = %d\n",__LINE__);
-					if(a_neighbr[i_mem].tf==true)
-					{
-						printf("line = %d\n",__LINE__);
+					
+					//if(a_neighbr[i_mem].tf==true)
+					//{
+						
 						memcpy(bf+test_mem, &a_idipport[i_mem].topology_ip[0],1);
 						test_mem++;
 						memcpy(bf+test_mem, &a_idipport[i_mem].topology_ip[1],1);	
@@ -380,42 +427,53 @@ switch(a_test)
 						memcpy(bf+test_mem, &a_idipport[i_mem].topology_ip[3],1);
 						test_mem++;
 						memcpy(bf+test_mem, &a_idipport[i_mem].topology_port,2);
+						printf("port =%d\n",a_idipport[i_mem].topology_port);
 						test_mem=test_mem+2;
 						memcpy(bf+test_mem, &padding,2);
 						test_mem=test_mem+2;
 						memcpy(bf+test_mem, &a_idipport[i_mem].topology_id,2);
+						printf("id=%d\n",a_idipport[i_mem].topology_id);
 						test_mem=test_mem+2;
 						memcpy(bf+test_mem, &a_ididcost[i_mem].costlink,2);
+						printf("costlink=%d\n",a_ididcost[i_mem].costlink);
 						test_mem=test_mem+2;
-					}
-				}	
+					//}
+				}
 			}
 
+			 for(i=0;i<5;i++)
+			 {
+				//if((a_idipport[i].topology_id!=my_id) && (a_neighbr[i].tf== true))
+				 //	{
+		
+					bzero(&serv_addr, sizeof(serv_addr));
+					serv_addr.sin_family = AF_INET;
+					//check this part
+					char s_update[INET_ADDRSTRLEN];
+					sprintf(s_update,"%d.%d.%d.%d",a_idipport[i].topology_ip[0],a_idipport[i].topology_ip[1],a_idipport[i].topology_ip[2],a_idipport[i].topology_ip[3]);
+					printf("string is %s\n",s_update);
+					serv_addr.sin_port = htons(a_idipport[i].topology_port);
 
-
-
-				
-				
-   				/* serv_addr.sin_port = htons(4091);
-  				  if (inet_aton(command[1], &serv_addr.sin_addr)==0)
+    			  	  if (inet_aton(s_update, &serv_addr.sin_addr)==0)
    					 {
-      						  fprintf(stderr, "inet_aton() failed\n");
-      						  exit(1);
+    			  		  fprintf(stderr, "inet_aton() failed\n");
+    			  		  exit(1);
    					 }
- 
-   				 while(1)
-    				{
-       				 printf("\nEnter data to send(Type exit and press enter to exit) : ");
-       				 scanf("%[^\n]",buf);
-       				 getchar();
-        			if(strcmp(buf,"exit") == 0)
-        			  exit(0);
- 			
-       				 if (sendto(ConnectingSockfd, buf, BUFLEN, 0, (struct sockaddr*)&serv_addr, slen)==-1)
-          			  err("sendto()");
-   				 }*/
-				}//else
-				printf("line = %d\n",__LINE__);
+					if (sendto(ConnectingSockfd, bf, a, 0, (struct sockaddr*)&serv_addr, slen)==-1)
+    	      			  err("sendto()");
+				//	}
+			}			
+
+
+
+
+
+				
+				
+   				
+				}
+//else
+				
 
 			}
 			if((strcmp(command[0],"STEP")== 0) || (strcmp(command[0],"step")==0))
@@ -425,10 +483,13 @@ switch(a_test)
 			if((strcmp(command[0],"PACKETS")== 0) || (strcmp(command[0],"packets")==0))
 			{
 				printf("The command is %s\n",command[0]);
+				printf("count=%d\n",count);
+				count=0;
 			}
 			if((strcmp(command[0],"DISPLAY")== 0) || (strcmp(command[0],"display")==0))
 			{
 				printf("The command is %s\n",command[0]);
+				PrintCostTable();
 			}
 			if((strcmp(command[0],"DISABLE")== 0) || (strcmp(command[0],"disable")==0))
 			{
@@ -451,7 +512,7 @@ switch(a_test)
 				
 
 			}
-				printf("line = %d\n",__LINE__);
+				
 			getchar();
 		}// IF STDIN
 
@@ -461,14 +522,40 @@ switch(a_test)
 		{
 			if (FD_ISSET(iFD, &myread_fds) && iFD!=STDIN)
 			{ // we got one!!
-				if (recvfrom(ListeningSockfd, buf, BUFLEN, 0, (struct sockaddr*)&cli_addr, &slen)==-1)
+					count++;
+				if (recvfrom(ListeningSockfd, rcvbf, a, 0, (struct sockaddr*)&cli_addr, &slen)==-1)
 		            err("recvfrom()");
-       					 printf("Received packet from %s:%d\nData: %s\n\n",
-               						inet_ntoa(cli_addr.sin_addr), ntohs(cli_addr.sin_port), buf);
+       					 printf("Received packet from %s:%d\n\n\n",
+               						inet_ntoa(cli_addr.sin_addr), ntohs(cli_addr.sin_port));
 
-				/*if (iFD == myListeningSkfd)
-				{
-				}*/
+					uint16_t k1,k2,k11,k12,k13;
+					uint8_t k3,k4,k5,k6,k7,k8,k9,k10;
+					memcpy(&k1,rcvbf,2);
+					memcpy(&k2,rcvbf+2,2);
+					memcpy(&k3,rcvbf+4,1);
+					memcpy(&k4,rcvbf+5,1);
+					memcpy(&k5,rcvbf+6,1);
+					memcpy(&k6,rcvbf+7,1);
+					memcpy(&k7,rcvbf+8,1);
+					memcpy(&k8,rcvbf+9,1);
+					memcpy(&k9,rcvbf+10,1);
+					memcpy(&k10,rcvbf+11,1);
+					memcpy(&k11,rcvbf+12,2);
+					memcpy(&k12,rcvbf+14,2);
+					memcpy(&k13,rcvbf+16,2);
+					printf("k1=%d k2=%d\n",k1,k2);
+					printf("k3=%d k4=%d k5=%d k6=%d k7=%d k8=%d k9=%d k10=%d k11=%d k12=%d k13=%d\n",k3,k4,k5,k6,k7,k8,k9,k10,k11,k12,k13);
+					
+					memcpy(&cost[0],rcvbf+18,2);
+					printf("the cost[i] is %d\n",cost[0]);
+					
+					for(i=1;i<(numofservers);i++)
+					{
+						memcpy(&cost[i],rcvbf+18+(12*i),2);
+						printf("the cost[i] is %d\n",cost[i]);
+					}
+
+				
 			}
 		}
 	}
@@ -481,9 +568,11 @@ switch(a_test)
 void PrintCostTable(void)
 {
 	int i,j;
-	for( i = 0; i < 5; i++)
+	//CostTable[my_id][my_id]=0;
+	for( i = 0; i < numofservers; i++)
 	{
-		for(j = 0; j < 5; j++)
+	
+		for(j = 0; j < numofservers; j++)
 		{
 			printf("%d ",CostTable[i][j]);
 		}
@@ -575,15 +664,15 @@ int ReadTopologyFile (char* chFileName)
 				
 				a_neighbr[r_nid-1].tf=true;
 				printf("a_neighbr[%d}=%d\n",r_nid,a_neighbr[r_nid-1].tf);
-				a_ididcost[serverid-1].myid=r_id;
-				a_ididcost[serverid-1].neighbourid=r_nid;
-				a_ididcost[serverid-1].costlink=r_cost;
-				printf("id=%d,nid=%d,costlink=%d\n",a_ididcost[serverid-1].myid,a_ididcost[serverid-1].neighbourid,a_ididcost[serverid-1].costlink);
+				a_ididcost[r_nid-1].myid=r_id;
+				a_ididcost[r_nid-1].neighbourid=r_nid;
+				a_ididcost[r_nid-1].costlink=r_cost;
+				printf("id=%d,nid=%d,costlink=%d\n",a_ididcost[r_nid-1].myid,a_ididcost[r_nid-1].neighbourid,a_ididcost[r_nid-1].costlink);
 
-                                if ( r_id < 5 && r_nid < 5)	
+                                if ( r_id <= 5 && r_nid <= 5)	
 				{
 					CostTable[ r_id -1] [ r_nid-1 ] = r_cost;
-					CostTable[ r_nid-1 ] [ r_id -1] = r_cost;
+					//CostTable[ r_nid-1 ] [ r_id -1] = r_cost;
 					// implement the 2D array with cost	
 					//a_ididcost[i].myid=r_id;
 					//a_ididcost[i].neighbourid=r_nid;
