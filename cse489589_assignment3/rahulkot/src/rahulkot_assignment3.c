@@ -132,6 +132,13 @@ int main(int argc, char **argv)
 	
 	//for counting packets
 	int count=0;
+	
+	//for error messages
+	char error_update[]="Wrong input, The first Id should be My ID";
+	char error_update1[]="Wrong input, The second Id is not my neighbour";
+	
+	//at receiving end
+	uint16_t recv_id;
 
 	
 
@@ -187,7 +194,7 @@ int main(int argc, char **argv)
 		a_ididcost[i].costlink=0;
 		for(j=0;j<5;j++)
 		{
-      		CostTable[i][j]=-1;
+      		CostTable[i][j]=65535;
 			
 			//printf("%d\t",CostTable[i][j]);
 		}
@@ -362,61 +369,88 @@ int main(int argc, char **argv)
 			}
 			if((strcmp(command[0],"UPDATE")== 0) || (strcmp(command[0],"update")==0))
 			{
-				printf("The command is %s\n",command[0]);
+				
+				
+				/*printf("The command is %s\n",command[0]);
 				printf("the command[1] is %s\n",command[1]);
 				printf("the atoi is %d\n",atoi(command[1]));
 				printf("size of updt %d\n",sizeof(updt));
 				printf("size of portnumber %d\n",sizeof(port_num));
 				printf("size of padding %d\n",sizeof(padding));
-				printf("size of costlink %d\n",sizeof(a_ididcost[2].costlink));
+				printf("size of costlink %d\n",sizeof(a_ididcost[2].costlink));*/
 
 				//Update logic 
 				if(my_id!=atoi(command[1]))
 				{
-					printf("wrong command, enter myid as 1st id\n");
+					cse4589_print_and_log("%s:%s\n", command[0],error_update);
+					//printf("wrong command, enter myid as 1st id\n");
 					
 				}
 				else
 				{
-
+					
 					if(a_neighbr[atoi(command[2])-1].tf== false)
 					{
-					printf("not a neighbour\n");
+						cse4589_print_and_log("%s:%s\n", command[0],error_update1);
+						//printf("not a neighbour\n");
 					}
 
+					else
+					{
+						cse4589_print_and_log("%s:SUCCESS\n", command[0]);
+						CostTable[my_id-1][atoi(command[2])-1]=atoi(command[3]);
+						a_ididcost[atoi(command[2])-1].costlink=atoi(command[3]);
+						printf("a_ididcost updated = %d\n",a_ididcost[atoi(command[2])-1].costlink);
+					}
+				}	
 
-			if(a_ididcost[atoi(command[2])-1].costlink != atoi(command[3]))
+
+			
+   				
+				}
+//else
+				
+
+			//}
+			if((strcmp(command[0],"STEP")== 0) || (strcmp(command[0],"step")==0))
 			{
-				printf("entered update send loop\n");
-				int i_mem=0;
-				int test_mem;
-				 //send update to all
-				//creating a buffer and memcopying every parameter we need to send
+				printf("The command is %s\n",command[0]);
+				cse4589_print_and_log("%s:SUCCESS\n", command[0]);
+			//for(i=0;i<numofservers;i++)
+			//{
 
-				bzero(&serv_addr, sizeof(serv_addr));
+				
+				
+					printf("entered Step send loop\n");
+					int i_mem=0;
+					int test_mem;
+				 	//send update to all
+					//creating a buffer and memcopying every parameter we need to send
+
+					bzero(&serv_addr, sizeof(serv_addr));
     				serv_addr.sin_family = AF_INET;
-				//new one
+					//new one
 				
-				updt=5;
-				memcpy(bf,&updt,2);
-				memcpy(bf+2,&port_num,2);
-				memcpy(bf+4, &IP[0],sizeof(IP[0]));
-				
-				memcpy(bf+5, &IP[1],sizeof(IP[1]));
-				memcpy(bf+6, &IP[2],sizeof(IP[2]));
-				memcpy(bf+7, &IP[3],sizeof(IP[3]));
-				uint16_t k;
-				memcpy(&k,bf+2,2);
-				printf("\n\n\n\n%d\n\n\n",k);
-
-			        test_mem=8;
-				printf("num of neighbours= %d line:%d\n",numofneighbours,__LINE__);
-
-				for(i_mem=0;i_mem<numofservers;i_mem++)
-				{
+					updt=5;
+					memcpy(bf,&updt,2);
+					memcpy(bf+2,&port_num,2);
+					memcpy(bf+4, &IP[0],sizeof(IP[0]));
 					
-					//if(a_neighbr[i_mem].tf==true)
-					//{
+					memcpy(bf+5, &IP[1],sizeof(IP[1]));
+					memcpy(bf+6, &IP[2],sizeof(IP[2]));
+					memcpy(bf+7, &IP[3],sizeof(IP[3]));
+					uint16_t k;
+					memcpy(&k,bf+2,2);
+					printf("\n\n\n\n%d\n\n\n",k);
+	
+			        test_mem=8;
+					printf("num of neighbours= %d line:%d\n",numofneighbours,__LINE__);
+	
+					for(i_mem=0;i_mem<numofservers;i_mem++)
+					{
+					
+						//if(a_neighbr[i_mem].tf==true)
+						//{
 						
 						memcpy(bf+test_mem, &a_idipport[i_mem].topology_ip[0],1);
 						test_mem++;
@@ -437,9 +471,10 @@ int main(int argc, char **argv)
 						memcpy(bf+test_mem, &a_ididcost[i_mem].costlink,2);
 						printf("costlink=%d\n",a_ididcost[i_mem].costlink);
 						test_mem=test_mem+2;
-					//}
-				}
-			}
+						//}
+					}
+				
+			//}
 
 			 for(i=0;i<5;i++)
 			 {
@@ -462,23 +497,7 @@ int main(int argc, char **argv)
 					if (sendto(ConnectingSockfd, bf, a, 0, (struct sockaddr*)&serv_addr, slen)==-1)
     	      			  err("sendto()");
 				//	}
-			}			
-
-
-
-
-
-				
-				
-   				
-				}
-//else
-				
-
-			}
-			if((strcmp(command[0],"STEP")== 0) || (strcmp(command[0],"step")==0))
-			{
-				printf("The command is %s\n",command[0]);
+			}	
 			}
 			if((strcmp(command[0],"PACKETS")== 0) || (strcmp(command[0],"packets")==0))
 			{
@@ -528,6 +547,8 @@ int main(int argc, char **argv)
        					 printf("Received packet from %s:%d\n\n\n",
                						inet_ntoa(cli_addr.sin_addr), ntohs(cli_addr.sin_port));
 
+				
+
 					uint16_t k1,k2,k11,k12,k13;
 					uint8_t k3,k4,k5,k6,k7,k8,k9,k10;
 					memcpy(&k1,rcvbf,2);
@@ -546,14 +567,70 @@ int main(int argc, char **argv)
 					printf("k1=%d k2=%d\n",k1,k2);
 					printf("k3=%d k4=%d k5=%d k6=%d k7=%d k8=%d k9=%d k10=%d k11=%d k12=%d k13=%d\n",k3,k4,k5,k6,k7,k8,k9,k10,k11,k12,k13);
 					
+					
 					memcpy(&cost[0],rcvbf+18,2);
-					printf("the cost[i] is %d\n",cost[0]);
+					
+					
+					printf("the cost[0] is %d\n",cost[0]);
 					
 					for(i=1;i<(numofservers);i++)
 					{
 						memcpy(&cost[i],rcvbf+18+(12*i),2);
-						printf("the cost[i] is %d\n",cost[i]);
+						printf("the cost[%d] is %d\n",i,cost[i]);
 					}
+					//finding id of the server from which the packet is received
+
+					for(i=0;i<5;i++)
+					{
+	  					
+	  						if((a_idipport[i].topology_ip[0]==k3) && (a_idipport[i].topology_ip[1]==k4)&& (a_idipport[i].topology_ip[2]==k5)&& (a_idipport[i].topology_ip[3]==k6))
+							{
+							z=1;
+							}
+							else
+							{
+							z=0;
+							}
+						
+	   					 if(z==1)
+						{
+						
+						recv_id=a_idipport[i].topology_id;
+						printf("recv_id is %d\n",recv_id);
+						}
+					z=0;
+
+				 }//id found, recv_id
+					 
+
+					if(recv_id!=my_id)
+					{
+						printf("its not my id\n");
+						for(i=0;i<numofservers;i++)
+						{   
+							//updating the received costs from neighbour
+							//a_ididcost[recv_id-1].costlink[i]=cost[i];
+							CostTable[recv_id-1][i]=cost[i];
+
+							//bellmanford for for my costs calculation
+						}
+						for(i=0;i<numofservers;i++)
+						{
+							
+						if(a_ididcost[i].costlink > ( cost[i] + a_ididcost[recv_id-1].costlink))
+					 	{
+							CostTable[my_id-1][i]= (cost[i] + a_ididcost[recv_id-1].costlink);
+							a_ididcost[i].costlink= (cost[i] + a_ididcost[recv_id-1].costlink);
+						}
+							
+						}
+						
+					}	
+					else
+					{
+						printf("its my id \n");
+					}	
+			
 
 				
 			}
@@ -574,7 +651,7 @@ void PrintCostTable(void)
 	
 		for(j = 0; j < numofservers; j++)
 		{
-			printf("%d ",CostTable[i][j]);
+			printf("%d \t",CostTable[i][j]);
 		}
 		printf("\n");
 	}
