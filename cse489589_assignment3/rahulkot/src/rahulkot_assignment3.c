@@ -188,7 +188,7 @@ int main(int argc, char **argv)
        }
    }
 
-	//for cost table
+		//for cost table
 	for(i=0;i<5;i++)
 	{
 		a_ididcost[i].costlink=0;
@@ -203,6 +203,8 @@ int main(int argc, char **argv)
 		
 	// read the topology file and load the data in structures 
 	ReadTopologyFile(filename);
+
+
 	
 	uint16_t updt=0;
 	uint16_t padding=0;
@@ -237,7 +239,7 @@ int main(int argc, char **argv)
     bzero(&my_addr, sizeof(my_addr));
 
 //extracting port number from topology file
-	for(i=0;i<5;i++)
+	for(i=0;i<numofservers;i++)
 	{
 	  	for(z1=0;z1<4;z1++)
 		{
@@ -476,7 +478,7 @@ int main(int argc, char **argv)
 				
 			//}
 
-			 for(i=0;i<5;i++)
+			 for(i=0;i<numofservers;i++)
 			 {
 				//if((a_idipport[i].topology_id!=my_id) && (a_neighbr[i].tf== true))
 				 //	{
@@ -580,7 +582,7 @@ int main(int argc, char **argv)
 					}
 					//finding id of the server from which the packet is received
 
-					for(i=0;i<5;i++)
+					for(i=0;i<numofservers;i++)
 					{
 	  					
 	  						if((a_idipport[i].topology_ip[0]==k3) && (a_idipport[i].topology_ip[1]==k4)&& (a_idipport[i].topology_ip[2]==k5)&& (a_idipport[i].topology_ip[3]==k6))
@@ -746,7 +748,7 @@ int ReadTopologyFile (char* chFileName)
 				a_ididcost[r_nid-1].costlink=r_cost;
 				printf("id=%d,nid=%d,costlink=%d\n",a_ididcost[r_nid-1].myid,a_ididcost[r_nid-1].neighbourid,a_ididcost[r_nid-1].costlink);
 
-                                if ( r_id <= 5 && r_nid <= 5)	
+                if ( r_id <= 5 && r_nid <= 5)	
 				{
 					CostTable[ r_id -1] [ r_nid-1 ] = r_cost;
 					//CostTable[ r_nid-1 ] [ r_id -1] = r_cost;
@@ -776,7 +778,7 @@ int ReadTopologyFile (char* chFileName)
 int getServerIDIndex ( int serverid)
 {
 	int i = 0;
-	for( i = 0 ; i < 5 ; i++)
+	for( i = 0 ; i < numofservers ; i++)
 	{
 		if( ServerIDArray[i] == serverid )
 			return i;
