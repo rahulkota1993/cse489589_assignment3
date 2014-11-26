@@ -68,6 +68,9 @@ struct ididcost
  uint16_t costlink;
 }a_ididcost[5];
 
+uint16_t nexthop[5];
+
+
 
 // Global variables
 struct idiport *topology_idipport;
@@ -188,10 +191,11 @@ int main(int argc, char **argv)
        }
    }
 
-		//for cost table
+		//for cost table 
 	for(i=0;i<5;i++)
 	{
-		a_ididcost[i].costlink=0;
+		a_ididcost[i].costlink=65535;
+		
 		for(j=0;j<5;j++)
 		{
       		CostTable[i][j]=65535;
@@ -203,6 +207,10 @@ int main(int argc, char **argv)
 		
 	// read the topology file and load the data in structures 
 	ReadTopologyFile(filename);
+
+	
+
+	
 
 
 	
@@ -263,6 +271,23 @@ int main(int argc, char **argv)
 	 }
 	printf("port number=%d\n",port_num);
 	CostTable[my_id-1][my_id-1]=0;
+	a_ididcost[my_id-1].costlink=0;
+
+	//nexthop initialisation
+
+	for(i=0;i<numofservers;i++)
+	{
+		if(a_ididcost[i].costlink==65535)
+		{
+			nexthop[i]=-1;
+		}
+		else
+		{
+			nexthop[i]=my_id;
+		}
+			printf("hop is nexthop[%d]=%d\n",i,nexthop[i]);
+
+	}
 
 	
 
@@ -623,6 +648,7 @@ int main(int argc, char **argv)
 					 	{
 							CostTable[my_id-1][i]= (cost[i] + a_ididcost[recv_id-1].costlink);
 							a_ididcost[i].costlink= (cost[i] + a_ididcost[recv_id-1].costlink);
+							nexthop[i]=a_idipport[recv_id-1].topology_id;
 						}
 							
 						}
