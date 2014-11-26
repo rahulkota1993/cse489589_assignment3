@@ -154,7 +154,7 @@ int main(int argc, char **argv)
 	printf("IP address: %s\n",myIP );
 	getIP(IP,myIP);//converting string IP address to uint_8t IP address
 	printf("size of IP[0]=%d\n",sizeof(IP[0]));
-	int interval;
+	int test_tv;
 
 
 	
@@ -181,8 +181,9 @@ int main(int argc, char **argv)
                            return -1;
                        }
 			//printf("%s\n",optarg);
-			interval= atoi(optarg);
-			printf("interval: %d\n",interval);
+			//interval= atoi(optarg);
+			tv.tv_sec= atoi(optarg);
+			printf("tv: %d\n",tv.tv_sec);
 			break;
            case '?':   
 
@@ -371,10 +372,22 @@ int main(int argc, char **argv)
 					startindex = endindex + 1;
 					commandindex++;
 
-					if(commandindex == 3)
+					if((strcmp(command[0],"DISABLE")== 0) || (strcmp(command[0],"disable")==0))
 					{
-						strcpy(command[commandindex], (command_line +i+1));
+					
+						strcpy(command[commandindex],(command_line +i+1));
 						printf("\n%d: %s\n",i,command[commandindex]);
+						break;
+					}
+					else
+					{
+
+					
+
+								if(commandindex == 3)
+								{
+									strcpy(command[commandindex], (command_line +i+1));
+									printf("\n%d: %s\n",i,command[commandindex]);
 						
 						break;
 					}
