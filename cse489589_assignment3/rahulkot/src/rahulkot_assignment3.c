@@ -226,7 +226,7 @@ int main(int argc, char **argv)
 
 
 	
-	uint16_t updt=0;
+	uint16_t updt=numofservers;
 	uint16_t padding=0;
 	//for update
 	char *bf;
@@ -341,7 +341,7 @@ int main(int argc, char **argv)
        myread_fds= myinitialset; // copying 
 		printf(" before select the tv is %d\n",tv.tv_sec);
 		
-		if (select(ListeningSockfd+1, &myread_fds, NULL, NULL, &tv) == -1)
+		if (select(ListeningSockfd+1, &myread_fds, NULL, NULL, NULL) == -1)
 		{
 			perror("select");
 			
@@ -579,6 +579,7 @@ int main(int argc, char **argv)
 		            err("recvfrom()");
        					 printf("Received packet from %s:%d\n\n\n",
                						inet_ntoa(cli_addr.sin_addr), ntohs(cli_addr.sin_port));
+						
 
 				
 
@@ -597,20 +598,11 @@ int main(int argc, char **argv)
 					memcpy(&k11,rcvbf+12,2);
 					memcpy(&k12,rcvbf+14,2);
 					memcpy(&k13,rcvbf+16,2);
-					printf("k1=%d k2=%d\n",k1,k2);
-					printf("k3=%d k4=%d k5=%d k6=%d k7=%d k8=%d k9=%d k10=%d k11=%d k12=%d k13=%d\n",k3,k4,k5,k6,k7,k8,k9,k10,k11,k12,k13);
+					//printf("k1=%d k2=%d\n",k1,k2);
+					//printf("k3=%d k4=%d k5=%d k6=%d k7=%d k8=%d k9=%d k10=%d k11=%d k12=%d k13=%d\n",k3,k4,k5,k6,k7,k8,k9,k10,k11,k12,k13);
 					
 					
-					memcpy(&cost[0],rcvbf+18,2);
 					
-					
-					printf("the cost[0] is %d\n",cost[0]);
-					
-					for(i=1;i<(numofservers);i++)
-					{
-						memcpy(&cost[i],rcvbf+18+(12*i),2);
-						printf("the cost[%d] is %d\n",i,cost[i]);
-					}
 					//finding id of the server from which the packet is received
 
 					for(i=0;i<numofservers;i++)
@@ -629,11 +621,27 @@ int main(int argc, char **argv)
 						{
 						
 						recv_id=a_idipport[i].topology_id;
-						printf("recv_id is %d\n",recv_id);
+						//printf("recv_id is %d\n",recv_id);
 						}
 					z=0;
 
 				 }//id found, recv_id
+
+					cse4589_print_and_log("RECEIVED A MESSAGE FROM SERVER%d\n",recv_id);
+
+					memcpy(&cost[0],rcvbf+18,2);
+					
+					
+					//printf("the cost[0] is %d\n",cost[0]);
+					cse4589_print_and_log("%-15d%-15d\n",a_idipport[0].topology_id,cost[0]);
+					
+					for(i=1;i<(numofservers);i++)
+					{
+						memcpy(&cost[i],rcvbf+18+(12*i),2);
+						//printf("the cost[%d] is %d\n",i,cost[i]);
+						cse4589_print_and_log("%-15d%-15d\n",a_idipport[i].topology_id,cost[i]);
+						
+					}
 					 
 
 					if(recv_id!=my_id)
@@ -645,17 +653,19 @@ int main(int argc, char **argv)
 							//a_ididcost[recv_id-1].costlink[i]=cost[i];
 							CostTable[recv_id-1][i]=cost[i];
 
-							//bellmanford for for my costs calculation
+							
 						}
+
+						//bellmanford for for my costs calculation
 						for(i=0;i<numofservers;i++)
 						{
 							
-						if(a_ididcost[i].costlink > ( cost[i] + a_ididcost[recv_id-1].costlink))
-					 	{
-							CostTable[my_id-1][i]= (cost[i] + a_ididcost[recv_id-1].costlink);
-							a_ididcost[i].costlink= (cost[i] + a_ididcost[recv_id-1].costlink);
-							nexthop[i]=a_idipport[recv_id-1].topology_id;
-						}
+							if(a_ididcost[i].costlink > ( cost[i] + a_ididcost[recv_id-1].costlink))
+					 		{
+								CostTable[my_id-1][i]= (cost[i] + a_ididcost[recv_id-1].costlink);
+								a_ididcost[i].costlink= (cost[i] + a_ididcost[recv_id-1].costlink);
+								nexthop[i]=a_idipport[recv_id-1].topology_id;
+							}
 							
 						}
 						
@@ -775,6 +785,13 @@ void PrintCostTable(void)
 		}
 		printf("\n");
 	}
+
+	for(i=0;i<numofservers;i++)
+	{
+		cse4589_print_and_log("%-15d%-15d%-15d\n",a_idipport[i].topology_id,nexthop[i],a_ididcost[i].costlink);
+	}
+
+	
 }
 
 int ReadTopologyFile (char* chFileName)
@@ -804,7 +821,7 @@ int ReadTopologyFile (char* chFileName)
     		 	if(i_topology==1)
 		 	{
 				numofservers=atoi(buf);
-				printf("no. of servers=%d\n",numofservers);
+				printf("no. of servers=%d",numofservers);
 				topology_idipport=(struct idipport*)malloc(numofservers*sizeof(struct idipport));
 				
 
