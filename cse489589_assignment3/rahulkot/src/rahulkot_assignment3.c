@@ -143,6 +143,14 @@ int main(int argc, char **argv)
 	//at receiving end
 	uint16_t recv_id;
 
+	//sending packets from step, select loop variable initialisation
+	struct timeval tv;
+	char s_update[INET_ADDRSTRLEN];
+	int i_mem=0;
+	int test_mem;
+	uint16_t k;
+	int q;
+
 	
 
 	int opt;
@@ -154,7 +162,7 @@ int main(int argc, char **argv)
 	printf("IP address: %s\n",myIP );
 	getIP(IP,myIP);//converting string IP address to uint_8t IP address
 	printf("size of IP[0]=%d\n",sizeof(IP[0]));
-	int test_tv;
+	
 
 
 	
@@ -182,7 +190,9 @@ int main(int argc, char **argv)
                        }
 			//printf("%s\n",optarg);
 			//interval= atoi(optarg);
-			tv.tv_sec= atoi(optarg);
+			q= atoi(optarg);
+			tv.tv_sec=q;
+			tv.tv_usec=0;
 			printf("tv: %d\n",tv.tv_sec);
 			break;
            case '?':   
@@ -208,7 +218,8 @@ int main(int argc, char **argv)
 		
 	// read the topology file and load the data in structures 
 	ReadTopologyFile(filename);
-
+	
+	
 	
 
 	
@@ -327,17 +338,17 @@ int main(int argc, char **argv)
 	{
 		
     	printf("\nEnter Command:\n");
-        myread_fds= myinitialset; // copying 
-
-		if (select(myMaxfd+1, &myread_fds, NULL, NULL, NULL) == -1)
+       myread_fds= myinitialset; // copying 
+		printf(" before select the tv is %d\n",tv.tv_sec);
+		
+		if (select(ListeningSockfd+1, &myread_fds, NULL, NULL, &tv) == -1)
 		{
 			perror("select");
 			
 		}
-
+		printf("in select the tv is %d\n",tv.tv_sec);
 		if (FD_ISSET(STDIN, &myread_fds))
 		{
-			
 			i = 0;
 			bhasSpace = false;
 			memset(command[0],0, 32);
@@ -346,19 +357,7 @@ int main(int argc, char **argv)
 
 			// split commands with space ' '
 			i =startindex= 0;
-			commandindex = 0;
-			
-			/*command[0][32]=strtok(command_line," ");
-			printf( " %s\n", command[0] );
-			i++;
-			 while( command_line != NULL ) 
-  			 {
-     			 
-    
-     		 	command[i][32] = strtok(NULL," ");
-				printf( " %s\n", command[i] );
-   			 }*/
-		
+			commandindex = 0;		
 
 			while( command_line[i] != '\0')
 			{
@@ -388,8 +387,8 @@ int main(int argc, char **argv)
 								{
 									strcpy(command[commandindex], (command_line +i+1));
 									printf("\n%d: %s\n",i,command[commandindex]);
-						
-						break;
+									break;
+								}
 					}
 				}    
   				i++;
@@ -423,7 +422,7 @@ int main(int argc, char **argv)
 				if(my_id!=atoi(command[1]))
 				{
 					cse4589_print_and_log("%s:%s\n", command[0],error_update);
-					//printf("wrong command, enter myid as 1st id\n");
+					
 					
 				}
 				else
@@ -432,7 +431,7 @@ int main(int argc, char **argv)
 					if(a_neighbr[atoi(command[2])-1].tf== false)
 					{
 						cse4589_print_and_log("%s:%s\n", command[0],error_update1);
-						//printf("not a neighbour\n");
+					
 					}
 
 					else
@@ -456,41 +455,33 @@ int main(int argc, char **argv)
 			{
 				printf("The command is %s\n",command[0]);
 				cse4589_print_and_log("%s:SUCCESS\n", command[0]);
-			//for(i=0;i<numofservers;i++)
-			//{
 
 				
 				
 					printf("entered Step send loop\n");
-					int i_mem=0;
-					int test_mem;
+					
 				 	//send update to all
 					//creating a buffer and memcopying every parameter we need to send
 
 					bzero(&serv_addr, sizeof(serv_addr));
     				serv_addr.sin_family = AF_INET;
 					//new one
-				
-					updt=5;
 					memcpy(bf,&updt,2);
 					memcpy(bf+2,&port_num,2);
-					memcpy(bf+4, &IP[0],sizeof(IP[0]));
-					
+					memcpy(bf+4, &IP[0],sizeof(IP[0]));					
 					memcpy(bf+5, &IP[1],sizeof(IP[1]));
 					memcpy(bf+6, &IP[2],sizeof(IP[2]));
 					memcpy(bf+7, &IP[3],sizeof(IP[3]));
-					uint16_t k;
+					
 					memcpy(&k,bf+2,2);
 					printf("\n\n\n\n%d\n\n\n",k);
 	
 			        test_mem=8;
-					printf("num of neighbours= %d line:%d\n",numofneighbours,__LINE__);
+		
 	
 					for(i_mem=0;i_mem<numofservers;i_mem++)
 					{
-					
-						//if(a_neighbr[i_mem].tf==true)
-						//{
+				
 						
 						memcpy(bf+test_mem, &a_idipport[i_mem].topology_ip[0],1);
 						test_mem++;
@@ -511,34 +502,38 @@ int main(int argc, char **argv)
 						memcpy(bf+test_mem, &a_ididcost[i_mem].costlink,2);
 						printf("costlink=%d\n",a_ididcost[i_mem].costlink);
 						test_mem=test_mem+2;
-						//}
+						
 					}
 				
-			//}
+			
 
-			 for(i=0;i<numofservers;i++)
-			 {
-				//if((a_idipport[i].topology_id!=my_id) && (a_neighbr[i].tf== true))
-				 //	{
+				 for(i=0;i<numofservers;i++)
+				 {
+					if((a_idipport[i].topology_id==my_id) || (a_neighbr[i].tf== true))
+					 	{
 		
-					bzero(&serv_addr, sizeof(serv_addr));
-					serv_addr.sin_family = AF_INET;
-					//check this part
-					char s_update[INET_ADDRSTRLEN];
-					sprintf(s_update,"%d.%d.%d.%d",a_idipport[i].topology_ip[0],a_idipport[i].topology_ip[1],a_idipport[i].topology_ip[2],a_idipport[i].topology_ip[3]);
-					printf("string is %s\n",s_update);
-					serv_addr.sin_port = htons(a_idipport[i].topology_port);
+							bzero(&serv_addr, sizeof(serv_addr));
+							serv_addr.sin_family = AF_INET;
+							//check this part
+							
+							sprintf(s_update,"%d.%d.%d.%d",a_idipport[i].topology_ip[0],a_idipport[i].topology_ip[1],a_idipport[i].topology_ip[2],a_idipport[i].topology_ip[3]);
+							printf("string is %s\n",s_update);
+							serv_addr.sin_port = htons(a_idipport[i].topology_port);
 
-    			  	  if (inet_aton(s_update, &serv_addr.sin_addr)==0)
-   					 {
-    			  		  fprintf(stderr, "inet_aton() failed\n");
-    			  		  exit(1);
-   					 }
-					if (sendto(ConnectingSockfd, bf, a, 0, (struct sockaddr*)&serv_addr, slen)==-1)
-    	      			  err("sendto()");
-				//	}
-			}	
+    				  		  if (inet_aton(s_update, &serv_addr.sin_addr)==0)
+   							 {
+    				  		  fprintf(stderr, "inet_aton() failed\n");
+    				  		  exit(1);
+   						 	}
+								
+							if (sendto(ConnectingSockfd, bf, a, 0, (struct sockaddr*)&serv_addr, slen)==-1)
+    	      			  		err("sendto()");
+								
+						}
+				}	
 			}
+
+
 			if((strcmp(command[0],"PACKETS")== 0) || (strcmp(command[0],"packets")==0))
 			{
 				printf("The command is %s\n",command[0]);
@@ -575,11 +570,9 @@ int main(int argc, char **argv)
 			getchar();
 		}// IF STDIN
 
-        // run through the existing connections looking for data to read
+        //for listening
 
-		for(iFD = 0; iFD <= myMaxfd; iFD++)
-		{
-			if (FD_ISSET(iFD, &myread_fds) && iFD!=STDIN)
+			else if(FD_ISSET(ListeningSockfd, &myread_fds))
 			{ // we got one!!
 					count++;
 				if (recvfrom(ListeningSockfd, rcvbf, a, 0, (struct sockaddr*)&cli_addr, &slen)==-1)
@@ -674,8 +667,94 @@ int main(int argc, char **argv)
 			
 
 				
-			}
-		}
+				}
+				
+				else
+				{
+					printf("timeout Occured\n");
+
+					 	//send update to all
+					//creating a buffer and memcopying every parameter we need to send
+
+					bzero(&serv_addr, sizeof(serv_addr));
+    				serv_addr.sin_family = AF_INET;
+					//new one
+				
+					updt=5;
+					memcpy(bf,&updt,2);
+					memcpy(bf+2,&port_num,2);
+					memcpy(bf+4, &IP[0],sizeof(IP[0]));
+					
+					memcpy(bf+5, &IP[1],sizeof(IP[1]));
+					memcpy(bf+6, &IP[2],sizeof(IP[2]));
+					memcpy(bf+7, &IP[3],sizeof(IP[3]));
+					
+					memcpy(&k,bf+2,2);
+					printf("\n\n\n\n%d\n\n\n",k);
+	
+			        test_mem=8;
+					printf("num of neighbours= %d line:%d\n",numofneighbours,__LINE__);
+	
+					for(i_mem=0;i_mem<numofservers;i_mem++)
+					{
+				
+						
+						memcpy(bf+test_mem, &a_idipport[i_mem].topology_ip[0],1);
+						test_mem++;
+						memcpy(bf+test_mem, &a_idipport[i_mem].topology_ip[1],1);	
+						test_mem++;
+						memcpy(bf+test_mem, &a_idipport[i_mem].topology_ip[2],1);
+						test_mem++;
+						memcpy(bf+test_mem, &a_idipport[i_mem].topology_ip[3],1);
+						test_mem++;
+						memcpy(bf+test_mem, &a_idipport[i_mem].topology_port,2);
+						printf("port =%d\n",a_idipport[i_mem].topology_port);
+						test_mem=test_mem+2;
+						memcpy(bf+test_mem, &padding,2);
+						test_mem=test_mem+2;
+						memcpy(bf+test_mem, &a_idipport[i_mem].topology_id,2);
+						printf("id=%d\n",a_idipport[i_mem].topology_id);
+						test_mem=test_mem+2;
+						memcpy(bf+test_mem, &a_ididcost[i_mem].costlink,2);
+						printf("costlink=%d\n",a_ididcost[i_mem].costlink);
+						test_mem=test_mem+2;
+						
+					}
+				
+			
+
+				 for(i=0;i<numofservers;i++)
+				 {
+					if((a_idipport[i].topology_id==my_id) || (a_neighbr[i].tf== true))
+					 	{
+		
+							bzero(&serv_addr, sizeof(serv_addr));
+							serv_addr.sin_family = AF_INET;
+							//check this part
+							
+							sprintf(s_update,"%d.%d.%d.%d",a_idipport[i].topology_ip[0],a_idipport[i].topology_ip[1],a_idipport[i].topology_ip[2],a_idipport[i].topology_ip[3]);
+							printf("string is %s\n",s_update);
+							serv_addr.sin_port = htons(a_idipport[i].topology_port);
+
+    				  		  if (inet_aton(s_update, &serv_addr.sin_addr)==0)
+   							 {
+    				  		  fprintf(stderr, "inet_aton() failed\n");
+    				  		  exit(1);
+   						 	}
+								printf(" before sendto");
+							if (sendto(ConnectingSockfd, bf, a, 0, (struct sockaddr*)&serv_addr, slen)==-1)
+    	      			  		err("sendto()");
+								printf("after send to");
+						}
+				}
+
+					//timeout regeneration
+					tv.tv_sec= q;
+					tv.tv_usec=0;
+					//break;
+				}
+		
+	 
 	}
 
 
