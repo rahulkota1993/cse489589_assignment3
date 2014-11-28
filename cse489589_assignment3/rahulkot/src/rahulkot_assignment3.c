@@ -72,6 +72,8 @@ int nexthop[5];
 int misscount[5];
 int timevalue[5];
 
+uint16_t c_trust[5];
+
 
 
 // Global variables
@@ -296,6 +298,7 @@ int main(int argc, char **argv)
 	{
 		timevalue[i]=0;//initialising all timevalues to 0;
 		misscount[i]=0;//initialising all misscounts to 0;
+		c_trust[i]=65535;
 		if(a_ididcost[i].costlink==65535)
 		{
 			nexthop[i]=-1;
@@ -995,6 +998,7 @@ int ReadTopologyFile (char* chFileName)
 				a_ididcost[r_nid-1].myid=r_id;
 				a_ididcost[r_nid-1].neighbourid=r_nid;
 				a_ididcost[r_nid-1].costlink=r_cost;
+				c_trust[r_nid-1]=r_cost;
 				printf("id=%d,nid=%d,costlink=%d\n",a_ididcost[r_nid-1].myid,a_ididcost[r_nid-1].neighbourid,a_ididcost[r_nid-1].costlink);
 
                 if ( r_id <= 5 && r_nid <= 5)	
