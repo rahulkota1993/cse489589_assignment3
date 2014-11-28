@@ -68,7 +68,9 @@ struct ididcost
  uint16_t costlink;
 }a_ididcost[5];
 
-uint16_t nexthop[5];
+int nexthop[5];
+int misscount[5];
+int timevalue[5];
 
 
 
@@ -76,7 +78,7 @@ uint16_t nexthop[5];
 struct idiport *topology_idipport;
 struct ididcost *topology_ididcost;
 int ServerIDArray[5];
-int CostTable[5][5];
+uint16_t CostTable[5][5];
 int numofservers;
 int numofneighbours;
 
@@ -121,6 +123,7 @@ int main(int argc, char **argv)
 	//fclose(fopen(LOGFILE, "w"));
 	//fclose(fopen(DUMPFILE, "wb"));
 
+
 	/*Start Here*/
 	//for bhasspace
 	char command_line[150];
@@ -135,6 +138,8 @@ int main(int argc, char **argv)
 	
 	//for counting packets
 	int count=0;
+	//for counting no. of intervals in select
+	int count_interval=1;
 	
 	//for error messages
 	char error_update[]="Wrong input, The first Id should be My ID";
@@ -149,7 +154,7 @@ int main(int argc, char **argv)
 	int i_mem=0;
 	int test_mem;
 	uint16_t k;
-	int q;
+	int interval;
 
 	
 
@@ -190,8 +195,8 @@ int main(int argc, char **argv)
                        }
 			//printf("%s\n",optarg);
 			//interval= atoi(optarg);
-			q= atoi(optarg);
-			tv.tv_sec=q;
+			interval= atoi(optarg);
+			tv.tv_sec=interval;
 			tv.tv_usec=0;
 			printf("tv: %d\n",tv.tv_sec);
 			break;
@@ -285,10 +290,12 @@ int main(int argc, char **argv)
 	CostTable[my_id-1][my_id-1]=0;
 	a_ididcost[my_id-1].costlink=0;
 
-	//nexthop initialisation
+	//nexthop, misscount, timevalue initialisation
 
 	for(i=0;i<numofservers;i++)
 	{
+		timevalue[i]=0;//initialising all timevalues to 0;
+		misscount[i]=0;//initialising all misscounts to 0;
 		if(a_ididcost[i].costlink==65535)
 		{
 			nexthop[i]=-1;
@@ -347,6 +354,8 @@ int main(int argc, char **argv)
 			
 		}
 		printf("in select the tv is %d\n",tv.tv_sec);
+		
+		printf("the count_interval value is %d\n",count_interval);
 		if (FD_ISSET(STDIN, &myread_fds))
 		{
 			i = 0;
@@ -393,7 +402,7 @@ int main(int argc, char **argv)
 				}    
   				i++;
 			
-			//if(( strcmp(command[0], "REGISTER") == 0) || (strcmp(command[0],"register")==0))
+			
 			}
 			//getchar();
 			if(bhasSpace== false)
@@ -404,6 +413,7 @@ int main(int argc, char **argv)
 			if((strcmp(command[0],"EXIT")== 0) || (strcmp(command[0],"exit")==0))
 			{	
 				printf("The command is %s\n",command[0]);
+
 				break;
 			}
 			if((strcmp(command[0],"UPDATE")== 0) || (strcmp(command[0],"update")==0))
@@ -437,9 +447,45 @@ int main(int argc, char **argv)
 					else
 					{
 						cse4589_print_and_log("%s:SUCCESS\n", command[0]);
-						CostTable[my_id-1][atoi(command[2])-1]=atoi(command[3]);
-						a_ididcost[atoi(command[2])-1].costlink=atoi(command[3]);
-						printf("a_ididcost updated = %d\n",a_ididcost[atoi(command[2])-1].costlink);
+						if((strcmp(command[3],"INF")== 0) || (strcmp(command[3],"inf")==0))
+						{
+							CostTable[my_id-1][atoi(command[2])-1]=65535;
+							a_ididcost[atoi(command[2])-1].costlink=65535;
+							printf("a_ididcost updated = %d\n",a_ididcost[atoi(command[2])-1].costlink);
+						}
+						else
+						{
+							CostTable[my_id-1][atoi(command[2])-1]=atoi(command[3]);
+							a_ididcost[atoi(command[2])-1].costlink=atoi(command[3]);
+							printf("a_ididcost updated = %d\n",a_ididcost[atoi(command[2])-1].costlink);
+						}
+					//bellman ford for the updated cost
+					
+						for(i=0;i<numofservers;i++)
+						{
+							if(a_neighbr[i].tf==true)
+							{	printf("i=%d\n",i);
+								for(j=0;j<numofservers;j++)
+								{
+									if(a_ididcost[j].costlink > (a_ididcost[i].costlink + CostTable[i][j]))
+									{	printf("a_ididcost[i].costlink=%d\n",a_ididcost[i].costlink);
+										printf("a_ididcost[j].costlink=%d\n,Costtable[%d][%d]=%d\n",a_ididcost[j],i,j,CostTable[i][j]);
+										a_ididcost[j].costlink = (a_ididcost[i].costlink + CostTable[i][j]);
+										CostTable[my_id-1][j] = (a_ididcost[i].costlink + CostTable[i][j]);
+										nexthop[j] = a_idipport[i].topology_id;
+										//printf("nexthop=%d\n",nexthop[j]);
+									}
+									
+								}
+							}
+						}
+
+						
+
+
+
+
+					//end of else
 					}
 				}	
 
@@ -509,7 +555,7 @@ int main(int argc, char **argv)
 
 				 for(i=0;i<numofservers;i++)
 				 {
-					if((a_idipport[i].topology_id==my_id) || (a_neighbr[i].tf== true))
+					if(a_neighbr[i].tf== true)
 					 	{
 		
 							bzero(&serv_addr, sizeof(serv_addr));
@@ -537,17 +583,31 @@ int main(int argc, char **argv)
 			if((strcmp(command[0],"PACKETS")== 0) || (strcmp(command[0],"packets")==0))
 			{
 				printf("The command is %s\n",command[0]);
+				cse4589_print_and_log("%s:SUCCESS\n", command[0]);
 				printf("count=%d\n",count);
 				count=0;
 			}
 			if((strcmp(command[0],"DISPLAY")== 0) || (strcmp(command[0],"display")==0))
 			{
 				printf("The command is %s\n",command[0]);
+				cse4589_print_and_log("%s:SUCCESS\n", command[0]);
 				PrintCostTable();
 			}
 			if((strcmp(command[0],"DISABLE")== 0) || (strcmp(command[0],"disable")==0))
 			{
 				printf("The command is %s\n",command[0]);
+				printf("The command is %s\n",command[1]);
+				cse4589_print_and_log("%s:SUCCESS\n", command[0]);
+				
+				if(a_neighbr[atoi(command[1])-1].tf==false)
+				{
+					printf("not a neighbour");
+				}
+				else
+				{
+					a_neighbr[atoi(command[1])-1].tf=false;
+					printf("the neighbr removed is %d=%d",atoi(command[1]),a_neighbr[atoi(command[1])].tf);
+				}
 			}
 			if((strcmp(command[0],"CRASH")== 0) || (strcmp(command[0],"crash")==0))
 			{
@@ -556,6 +616,9 @@ int main(int argc, char **argv)
 			if((strcmp(command[0],"DUMP")== 0) || (strcmp(command[0],"dump")==0))
 			{
 				printf("The command is %s\n",command[0]);
+				cse4589_print_and_log("%s:SUCCESS\n", command[0]);
+				cse4589_dump_packet(bf,a);
+				
 			}
 			if((strcmp(command[0],"ACADEMIC_INTEGRITY")== 0) || (strcmp(command[0],"academic_integrity")==0))
 			{
@@ -574,11 +637,10 @@ int main(int argc, char **argv)
 
 			else if(FD_ISSET(ListeningSockfd, &myread_fds))
 			{ // we got one!!
-					count++;
+					
 				if (recvfrom(ListeningSockfd, rcvbf, a, 0, (struct sockaddr*)&cli_addr, &slen)==-1)
 		            err("recvfrom()");
-       					 printf("Received packet from %s:%d\n\n\n",
-               						inet_ntoa(cli_addr.sin_addr), ntohs(cli_addr.sin_port));
+       					 
 						
 
 				
@@ -625,72 +687,124 @@ int main(int argc, char **argv)
 						}
 					z=0;
 
-				 }//id found, recv_id
-
-					cse4589_print_and_log("RECEIVED A MESSAGE FROM SERVER%d\n",recv_id);
-
-					memcpy(&cost[0],rcvbf+18,2);
+					}//id found, recv_id
 					
-					
-					//printf("the cost[0] is %d\n",cost[0]);
-					cse4589_print_and_log("%-15d%-15d\n",a_idipport[0].topology_id,cost[0]);
-					
-					for(i=1;i<(numofservers);i++)
+					if(a_neighbr[recv_id-1].tf== true)
 					{
-						memcpy(&cost[i],rcvbf+18+(12*i),2);
-						//printf("the cost[%d] is %d\n",i,cost[i]);
-						cse4589_print_and_log("%-15d%-15d\n",a_idipport[i].topology_id,cost[i]);
+						count++;
+						printf("Received packet from %s:%d\n\n\n",
+               						inet_ntoa(cli_addr.sin_addr), ntohs(cli_addr.sin_port));
+					
+
+						cse4589_print_and_log("RECEIVED A MESSAGE FROM SERVER%d\n",recv_id);
+					
+						timevalue[recv_id-1]= ((count_interval*interval)-tv.tv_sec);
+
+						memcpy(&cost[0],rcvbf+18,2);
+					
+					
+						//printf("the cost[0] is %d\n",cost[0]);
+						cse4589_print_and_log("%-15d%-15d\n",a_idipport[0].topology_id,cost[0]);
+					
+						for(i=1;i<(numofservers);i++)
+						{
+							memcpy(&cost[i],rcvbf+18+(12*i),2);
+							//printf("the cost[%d] is %d\n",i,cost[i]);
+							cse4589_print_and_log("%-15d%-15d\n",a_idipport[i].topology_id,cost[i]);
 						
-					}
+						}
 					 
 
-					if(recv_id!=my_id)
-					{
-						printf("its not my id\n");
-						for(i=0;i<numofservers;i++)
-						{   
-							//updating the received costs from neighbour
-							//a_ididcost[recv_id-1].costlink[i]=cost[i];
-							CostTable[recv_id-1][i]=cost[i];
+						if(recv_id!=my_id)
+						{
+							printf("its not my id\n");
+							for(i=0;i<numofservers;i++)
+							{   
+								//updating the received costs from neighbour
+								//a_ididcost[recv_id-1].costlink[i]=cost[i];
+								CostTable[recv_id-1][i]=cost[i];
 
 							
-						}
+							}
 
-						//bellmanford for for my costs calculation
+							//bellman ford for the updated cost
+					
 						for(i=0;i<numofservers;i++)
 						{
-							
-							if(a_ididcost[i].costlink > ( cost[i] + a_ididcost[recv_id-1].costlink))
-					 		{
-								CostTable[my_id-1][i]= (cost[i] + a_ididcost[recv_id-1].costlink);
-								a_ididcost[i].costlink= (cost[i] + a_ididcost[recv_id-1].costlink);
-								nexthop[i]=a_idipport[recv_id-1].topology_id;
+							if(a_neighbr[i].tf==true)
+							{	printf("i=%d\n",i);
+								for(j=0;j<numofservers;j++)
+								{
+									if(a_ididcost[j].costlink > (a_ididcost[i].costlink + CostTable[i][j]))
+									{	printf("a_ididcost[i].costlink=%d\n",a_ididcost[i].costlink);
+										printf("a_ididcost[j].costlink=%d\n,Costtable[%d][%d]=%d\n",a_ididcost[j].costlink,i,j,CostTable[i][j]);
+										a_ididcost[j].costlink = (a_ididcost[i].costlink + CostTable[i][j]);
+										CostTable[my_id-1][j] = (a_ididcost[i].costlink + CostTable[i][j]);
+										nexthop[j] = a_idipport[i].topology_id;
+										
+										//printf("nexthop=%d\n",nexthop[j]);
+									}
+									
+								}
 							}
-							
 						}
-						
-					}	
-					else
-					{
-						printf("its my id \n");
-					}	
-			
 
+							/*//bellmanford for for my costs calculation
+							for(i=0;i<numofservers;i++)
+							{
+							
+								if(a_ididcost[i].costlink > ( cost[i] + a_ididcost[recv_id-1].costlink))
+								{
+									CostTable[my_id-1][i]= (cost[i] + a_ididcost[recv_id-1].costlink);
+									a_ididcost[i].costlink= (cost[i] + a_ididcost[recv_id-1].costlink);
+									nexthop[i]=a_idipport[recv_id-1].topology_id;
+								}
+							
+							}*/
+						
+						}	
+						else
+						{
+							printf("its my id \n");
+						}	
+			
+					}
 				
 				}
 				
 				else
 				{
 					printf("timeout Occured\n");
+					count_interval++;
+					printf("count_interval=%d\n",count_interval);
 
 					 	//send update to all
 					//creating a buffer and memcopying every parameter we need to send
+					
+					//timeout checking calculations
+					
+					for(i=1;i<numofneighbours;i++)
+					{
+						if ((count_interval*tv.tv_sec)-timevalue[i] < tv.tv_sec)
+						{
+							misscount[i]=0;
+						}
+						else
+						{
+							misscount[i]++;
+						}
+						
+						if(misscount[i]==3)
+						{
+							a_neighbr[i].tf==false;
+						}
+					}
 
 					bzero(&serv_addr, sizeof(serv_addr));
     				serv_addr.sin_family = AF_INET;
 					//new one
 				
-					updt=5;
+					updt=numofservers;
 					memcpy(bf,&updt,2);
 					memcpy(bf+2,&port_num,2);
 					memcpy(bf+4, &IP[0],sizeof(IP[0]));
@@ -735,7 +849,7 @@ int main(int argc, char **argv)
 
 				 for(i=0;i<numofservers;i++)
 				 {
-					if((a_idipport[i].topology_id==my_id) || (a_neighbr[i].tf== true))
+					if(a_neighbr[i].tf== true)
 					 	{
 		
 							bzero(&serv_addr, sizeof(serv_addr));
@@ -759,7 +873,7 @@ int main(int argc, char **argv)
 				}
 
 					//timeout regeneration
-					tv.tv_sec= q;
+					tv.tv_sec= interval;
 					tv.tv_usec=0;
 					//break;
 				}
