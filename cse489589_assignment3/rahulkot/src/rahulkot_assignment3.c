@@ -370,7 +370,9 @@ int main(int argc, char **argv)
 			printf("hop is nexthop[%d]=%d\n",i,nexthop[i]);
 
 	}
-
+	uint16_t minimum=65535;
+	int cost_sid;
+	
 	
 
 
@@ -411,7 +413,7 @@ int main(int argc, char **argv)
        myread_fds= myinitialset; // copying 
 		//printf(" before select the tv is %d\n",tv.tv_sec);
 		
-		if (select(ListeningSockfd+1, &myread_fds, NULL, NULL, NULL) == -1)
+		if (select(ListeningSockfd+1, &myread_fds, NULL, NULL, &tv) == -1)
 		{
 			perror("select");
 			
@@ -515,7 +517,7 @@ int main(int argc, char **argv)
 								a_ididcost[atoi(command[2])-1].costlink=65535;
 								//c_trust[atoi(command[2])-1]=65535;
 								printf("a_ididcost updated = %d\n",a_ididcost[atoi(command[2])-1].costlink);
-							
+								ab[my_id-1][atoi(command[2])-1]=65535;
 							}
 							else
 							{
@@ -524,6 +526,7 @@ int main(int argc, char **argv)
 								//c_trust[atoi(command[2])-1]=atoi(command[3]);
 								//CostTable[atoi(command[2])-1][my_id-1]=atoi(command[3]);
 								CostTable[my_id-1][atoi(command[2])-1]=atoi(command[3]);
+								ab[my_id-1][atoi(command[2])-1]=atoi(command[3]);
 							
 							
 									PrintCostTable();
@@ -532,6 +535,52 @@ int main(int argc, char **argv)
 
 
 							//bellmanford equation
+							//bellmanford for for my costs calculation
+							
+							for(i=0;i<numofservers;i++)
+							{
+								printf("hai\n\n\n");
+								if(i!=(my_id-1))
+								{
+								
+								minimum=65535;
+								cost_sid=65535;
+								//iterations++;
+								//printf("Iteration %d\n",iterations);
+								for(j=0;j<numofservers;j++)
+								{
+									
+									if(a_neighbr[j].tf==true)
+									{
+										printf("cost[%u][%u]=%u+cost[%u][%u]=%u\n",my_id,j+1,ab[my_id-1][j],j+1,i+1,ab[j][i]);
+										cost_sid= ab[my_id-1][j]+ab[j][i];
+										printf("Cost is %d\n",cost_sid);
+										
+											if(cost_sid<minimum)
+											{
+												minimum=cost_sid;	
+										
+												nexthop[j]=j+1;
+											}
+									
+										//printf("Actual Cost is %u \n",a_ididcost[2].costlink);
+									
+	
+										
+
+									}
+									
+										
+								}
+								a_ididcost[i].costlink=minimum;
+								CostTable[my_id-1][i]=minimum;
+								printf("Estimated Cost is a_ididcost[%d].costlink=%u\n",j,a_ididcost[j].costlink);
+								printf("minimum=%d\n",minimum);
+								
+							}//endif
+									
+							}//end for	
+
 
 
 					}
@@ -770,9 +819,9 @@ int main(int argc, char **argv)
 							}
 							
 							//bellmanford for for my costs calculation
-							uint16_t minimum=65535;
-							int cost_sid;
-							int iterations=0;
+							minimum=65535;
+							
+							
 							for(i=0;i<numofservers;i++)
 							{
 								printf("hai\n\n\n");
@@ -781,8 +830,8 @@ int main(int argc, char **argv)
 								
 								minimum=65535;
 								cost_sid=65535;
-								iterations++;
-								printf("Iteration %d\n",iterations);
+								//iterations++;
+								//printf("Iteration %d\n",iterations);
 								for(j=0;j<numofservers;j++)
 								{
 									
@@ -791,14 +840,15 @@ int main(int argc, char **argv)
 										printf("cost[%u][%u]=%u+cost[%u][%u]=%u\n",my_id,j+1,ab[my_id-1][j],j+1,i+1,ab[j][i]);
 										cost_sid= ab[my_id-1][j]+ab[j][i];
 										printf("Cost is %d\n",cost_sid);
-									if(cost_sid<minimum)
-									{
-										minimum=cost_sid;	
 										
-										nexthop[j]=j+1;
-									}
+											if(cost_sid<minimum)
+											{
+												minimum=cost_sid;	
+										
+												nexthop[j]=j+1;
+											}
 									
-									//printf("Actual Cost is %u \n",a_ididcost[2].costlink);
+										//printf("Actual Cost is %u \n",a_ididcost[2].costlink);
 									
 	
 										
@@ -812,9 +862,9 @@ int main(int argc, char **argv)
 								printf("Estimated Cost is a_ididcost[%d].costlink=%u\n",j,a_ididcost[j].costlink);
 								printf("minimum=%d\n",minimum);
 								
-							}
+							}//endif
 									
-							}	
+							}//end for	
 
 
 
